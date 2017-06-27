@@ -60,8 +60,8 @@ var modulesLoader = new function () {
 				new Logic(scope.db, scope.ed, scope.schema, scope.genesisblock, result.account, scope.logger, cb);
 			});
 			break;
-		case 'Block':
-			async.waterfall([
+		 case 'Block':
+		 	async.waterfall([
 				function (waterCb) {
 					return new Account(scope.db, scope.schema, scope.logger, waterCb);
 				},
@@ -155,7 +155,6 @@ var modulesLoader = new function () {
 			{multisignatures: require('../../modules/multisignatures')},
 			{peers: require('../../modules/peers')},
 			{rounds: require('../../modules/rounds')},
-			{server: require('../../modules/server')},
 			{signatures: require('../../modules/signatures')},
 			{sql: require('../../modules/sql')},
 			{system: require('../../modules/system')},
