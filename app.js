@@ -79,7 +79,6 @@ var config = {
 	cache: appConfig.redis,
 	cacheEnabled: appConfig.cacheEnabled,
 	modules: {
-		server: './modules/server.js',
 		accounts: './modules/accounts.js',
 		transactions: './modules/transactions.js',
 		blocks: './modules/blocks.js',
@@ -104,7 +103,6 @@ var config = {
 		loader: { http: './api/http/loader.js' },
 		multisignatures: { http: './api/http/multisignatures.js' },
 		peers: { http: './api/http/peers.js' },
-		server: { http: './api/http/server.js' },
 		signatures: { http: './api/http/signatures.js' },
 		transactions: { http: './api/http/transactions.js' },
 		transport: { ws: './api/ws/transport.js' }
@@ -357,12 +355,8 @@ d.run(function () {
 			var queryParser = require('express-query-int');
 			var randomString = require('randomstring');
 
-			scope.config.nonce = randomString.generate(16);
-			scope.network.app.engine('html', require('ejs').renderFile);
+			scope.nonce = randomString.generate(16);
 			scope.network.app.use(require('express-domain-middleware'));
-			scope.network.app.set('view engine', 'ejs');
-			scope.network.app.set('views', path.join(__dirname, 'public'));
-			scope.network.app.use(scope.network.express.static(path.join(__dirname, 'public')));
 			scope.network.app.use(bodyParser.raw({limit: '2mb'}));
 			scope.network.app.use(bodyParser.urlencoded({extended: true, limit: '2mb', parameterLimit: 5000}));
 			scope.network.app.use(bodyParser.json({limit: '2mb'}));
