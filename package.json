@@ -8,9 +8,8 @@
     "eslint": "./node_modules/.bin/grunt eslint-nofix --verbose",
     "test": "./node_modules/.bin/grunt test --verbose",
     "test-unit": "./node_modules/.bin/grunt test-unit --verbose",
-    "test-integration": "export TEST=test/integration/peers.integration.js && export NODE_ENV=TEST && ./node_modules/.bin/grunt travis",
+    "test-integration": "export TEST=test/integration/peers.integration.js && export NODE_ENV=TEST && ./node_modules/.bin/grunt jenkins",
     "test-functional": "grunt test-functional",
-    "travis": "grunt travis --verbose",
     "fetchCoverage": "grunt exec:fetchCoverage --verbose",
     "jsdoc": "jsdoc -c docs/conf.json --verbose --pedantic",
     "create-bundles": "webpack",
@@ -84,7 +83,7 @@
     "mocha": "=3.4.2",
     "moment": "=2.18.1",
     "sinon": "=2.3.4",
-    "supertest": "=3.0.0"
+    "supertest": "=3.0.0",
     "pm2": "=2.4.6",
     "webpack": "=2.6.1",
     "webpack-node-externals": "=1.6.0"

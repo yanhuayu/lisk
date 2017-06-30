@@ -142,13 +142,13 @@ describe('peer', function () {
 			peer.state = initialState;
 		});
 
-		it('should not change state of banned peer', function () {
+		it('should change state of banned peer', function () {
 			var initialState = peer.state;
 			// Ban peer
 			peer.state = 0;
 			// Try to unban peer
 			peer.update({state: 2});
-			expect(peer.state).to.equal(0);
+			expect(peer.state).to.equal(2);
 			peer.state = initialState;
 		});
 

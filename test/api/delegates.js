@@ -410,7 +410,7 @@ describe('GET /api/delegates (cache)', function () {
 		var url;
 		url = '/api/delegates';
 
-		node.get(url, function (err, res) {
+		http.get(url, function (err, res) {
 			node.expect(res.body).to.have.property('success').to.be.ok;
 			node.expect(res.body).to.have.property('delegates').that.is.an('array');
 			var response = res.body;
@@ -428,7 +428,7 @@ describe('GET /api/delegates (cache)', function () {
 		orderBy = 'unknown:asc';
 		params = 'orderBy=' + orderBy;
 
-		node.get(url+ params, function (err, res) {
+		http.get(url+ params, function (err, res) {
 			node.expect(res.body).to.have.property('success').to.be.not.ok;
 			node.expect(res.body).to.have.property('error').to.equal('Invalid sort field');
 			cache.getJsonForKey(url + params, function (err, res) {
@@ -443,7 +443,7 @@ describe('GET /api/delegates (cache)', function () {
 		var url;
 		url = '/api/delegates';
 
-		node.get(url, function (err, res) {
+		http.get(url, function (err, res) {
 			node.expect(res.body).to.have.property('success').to.be.ok;
 			node.expect(res.body).to.have.property('delegates').that.is.an('array');
 			var response = res.body;

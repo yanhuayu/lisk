@@ -204,7 +204,7 @@ __private.insertSeeds = function (cb) {
 					height: status.height,
 					broadhash: status.broadhash,
 					nonce: status.nonce,
-					state: Peer.STATE.ACTIVE //connected
+					state: Peer.STATE.CONNECTED //connected
 				});
 				updated += 1;
 			}
@@ -252,7 +252,7 @@ __private.dbLoad = function (cb) {
 							height: status.height,
 							broadhash: status.broadhash,
 							nonce: status.nonce,
-							state: Peer.STATE.ACTIVE
+							state: Peer.STATE.CONNECTED
 						});
 						library.logic.peers.upsert(peer);
 						updated += 1;
@@ -335,7 +335,7 @@ Peers.prototype.getConsensus = function (matched, active) {
 		return undefined;
 	}
 
-	active = active || __private.getMatched({state: Peer.STATE.ACTIVE});
+	active = active || __private.getMatched({state: Peer.STATE.CONNECTED});
 	matched = matched || __private.getMatched({broadhash: constants.headers.broadhash}, active);
 
 	active = active.slice(0, constants.maxPeers);
@@ -376,20 +376,20 @@ Peers.prototype.update = function (peer) {
  * Removes peer from peers list if it is not a peer from config file list.
  * @implements logic.peers.remove
  * @param {Peer} peer
- * @return {function} Calls peers.remove
+ * @return {boolean} Calls peers.remove
  */
 Peers.prototype.remove = function (peer) {
-	var frozenPeer = _.find(library.config.peers.list, function (peer) {
-		return peer.ip === peer.ip && peer.port === peer.port;
+	var frozenPeer = _.find(library.config.peers.list, function (__peer) {
+		return peer.ip === __peer.ip && peer.port === __peer.port;
 	});
 	if (frozenPeer) {
 		// FIXME: Keeping peer frozen is bad idea at all
 		library.logger.debug('Cannot remove frozen peer', peer.ip + ':' + peer.port);
 		peer.state = Peer.STATE.DISCONNECTED;
 		library.logic.peers.upsert(peer);
-	} else {
-		return library.logic.peers.remove(peer);
+		return false;
 	}
+	return library.logic.peers.remove(peer);
 };
 
 /**
@@ -400,7 +400,7 @@ Peers.prototype.remove = function (peer) {
 Peers.prototype.discover = function (cb) {
 	library.logger.trace('Peers->discover');
 	function getFromRandomPeer (waterCb) {
-		self.list({limit: 1, allowedStates: [Peer.STATE.DISCONNECTED, Peer.STATE.ACTIVE]}, function (err, peers) {
+		self.list({limit: 1, allowedStates: [Peer.STATE.DISCONNECTED, Peer.STATE.CONNECTED]}, function (err, peers) {
 			var randomPeer = peers.length ? library.logic.peers.create(peers[0]) : null;
 			if (!err && randomPeer) {
 				randomPeer.rpc.status(function (err, status) {
@@ -412,7 +412,7 @@ Peers.prototype.discover = function (cb) {
 						height: status.height,
 						broadhash: status.broadhash,
 						nonce: status.nonce,
-						state: Peer.STATE.ACTIVE
+						state: Peer.STATE.CONNECTED
 					});
 					library.logic.peers.upsert(randomPeer);
 
@@ -482,7 +482,7 @@ Peers.prototype.acceptable = function (peers) {
 		.filter(function (peer) {
 			// Removing peers with private address or nonce equal to itself
 			if ((process.env['NODE_ENV'] || '').toUpperCase() === 'TEST') {
-			return peer.nonce !== modules.system.getNonce();
+				return peer.nonce !== modules.system.getNonce();
 			}
 			return !ip.isPrivate(peer.ip) && peer.nonce !== modules.system.getNonce();
 		}).value();
@@ -634,7 +634,7 @@ Peers.prototype.onPeersReady = function () {
 									height: status.height,
 									broadhash: status.broadhash,
 									nonce: status.nonce,
-									state: Peer.STATE.ACTIVE
+									state: Peer.STATE.CONNECTED
 								});
 								library.logic.peers.upsert(peer);
 								updated += 1;

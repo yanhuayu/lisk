@@ -13,6 +13,7 @@ var schema = require('../schema/transport.js');
 var sandboxHelper = require('../helpers/sandbox.js');
 var sql = require('../sql/transport.js');
 var zlib = require('zlib');
+var Peer = require('../logic/peer');
 
 // Private fields
 var modules, library, self, __private = {}, shared = {};
@@ -381,12 +382,12 @@ Transport.prototype.onNewBlock = function (block, broadcast) {
 		modules.system.update(function () {
 			if (!__private.broadcaster.maxRelays(block) && !modules.loader.syncing()) {
 				modules.peers.list({}, function (err, peers) {
-					async.each(peers.filter(function (peer) { return peer.state === Peer.STATE.ACTIVE; }), function (peer, cb) {
+					async.each(peers.filter(function (peer) { return peer.state === Peer.STATE.CONNECTED; }), function (peer, cb) {
 						peer.rpc.acceptPeer(library.logic.peers.me(), function (err) {
 							if (err) {
 								library.logger.debug('Failed to update peer after new block applied', peer.string);
 								cb({errorMsg: err, peer: peer});
-								__private.banPeer({peer: peer, code: 'ECOMMON', clock: 600});
+								__private.removePeer({peer: peer, code: 'ECOMMUNICATION'});
 							} else {
 								library.logger.debug('Peer notified correctly after update', peer.string);
 								cb();
@@ -463,7 +464,7 @@ Transport.prototype.internal = {
 			if (!escapedIds.length) {
 				library.logger.debug('Common block request validation failed', {err: 'ESCAPE', req: query.ids});
 
-				__private.removePeer({peer: peer, code: 'ECOMMON'}, extraLogMessage);
+				__private.removePeer({peer: query.peer, code: 'ECOMMON'});
 
 				return setImmediate(cb, 'Invalid block id sequence');
 			}
@@ -503,7 +504,7 @@ Transport.prototype.internal = {
 		} catch (e) {
 			library.logger.debug('Block normalization failed', {err: e.toString(), module: 'transport', block: query.block });
 
-			__private.removePeer({peer: peer, code: 'EBLOCK'}, extraLogMessage);
+			__private.removePeer({peer: query.peer, code: 'EBLOCK'});
 
 			return setImmediate(cb, e.toString());
 		}

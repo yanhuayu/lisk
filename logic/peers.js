@@ -36,7 +36,7 @@ function Peers (logger, cb) {
 }
 
 Peers.prototype.me = function () {
-	var me = _.extend(constants.getConst('headers'), {state: Peer.STATE.ACTIVE});
+	var me = _.extend(constants.getConst('headers'), {state: Peer.STATE.CONNECTED});
 	delete me.ip;
 	return me;
 };
@@ -122,7 +122,7 @@ Peers.prototype.upsert = function (peer, insertOnly) {
 	peer.string = peer.string || self.peersManager.getAddress(peer.nonce);
 
 	if (!peer.string) {
-		library.logger.warn('Upsert invalid peer rejected', {peer: peer});
+		console.trace('Upsert invalid peer rejected', {peer: peer});
 		return false;
 	}
 	// Performing insert or update

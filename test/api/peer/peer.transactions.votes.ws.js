@@ -204,7 +204,7 @@ describe('postTransactions', function () {
 			},
 			function (seriesCb) {
 				getVotes(account.address, function (err, res) {
-					node.expect(res).to.have.property('delegates').that.has.lengthOf(1);
+					node.expect(res.body).to.have.property('delegates').that.has.lengthOf(1);
 					return seriesCb(err);
 				});
 			}
