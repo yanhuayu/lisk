@@ -87,7 +87,7 @@ module.exports = function (grunt) {
 			},
 
 			fetchCoverage: {
-				command: 'rm -rf ./test/.coverage-func.zip; curl -o ./test/.coverage-func.zip $HOST/coverage/download',
+				command: '${HOST:=127.0.0.1:4000} && rm -rf ./test/.coverage-func.zip; curl -o ./test/.coverage-func.zip $HOST/coverage/download',
 				maxBuffer: maxBufferSize
 			}
 		},

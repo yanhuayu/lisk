@@ -103,7 +103,7 @@ if (program.snapshot) {
 	);
 }
 
-if (process.env.NODE_ENV === 'test') {
+if ((process.env['NODE_ENV'] || '').toUpperCase() === 'TEST') {
 	appConfig.coverage = true;
 }
 
