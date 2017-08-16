@@ -224,10 +224,10 @@ lock(resource: "Lisk-Core-Nodes", inversePrecedence: true) {
 					'''
 				}
 			},
-			"Functional Transactions - 0 tx" : {
+			"Functional Transactions - 0 transfer" : {
 				node('node-02'){
 					sh '''
-					export TEST=test/functional/http/post/0.tx.js  TEST_TYPE='FUNC' NODE_ENV='TEST'
+					export TEST=test/functional/http/post/0.transfer.js  TEST_TYPE='FUNC' NODE_ENV='TEST'
 					cd "$(echo $WORKSPACE | cut -f 1 -d '@')"
 					npm run jenkins
 					'''

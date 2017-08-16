@@ -10,4 +10,4 @@ require('./ws/transport');
 require('./ws/transport.blocks');
 require('./ws/transport.transactions');
 require('./ws/transport.transactions.stress');
-require('./http/post/0.tx');
+require('./http/post/0.transfer');

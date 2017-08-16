@@ -11,69 +11,9 @@ describe('POST /api/transactions (type 0)', function () {
 	var badTransactions = [];
 	var goodTransactions = [];
 
-	describe('schema validation', function () {
+	describe('schema validations', function () {
 
-		var transaction;
-
-		beforeEach(function () {
-			transaction = node.randomTx();
-		});
-
-		it('using null should fail', function (done) {
-			sendTransaction(null, function (err, res) {
-				node.expect(res).to.have.property('success').to.not.be.ok;
-				node.expect(res).to.have.property('message').to.equal('Invalid transaction body - Empty trs passed');
-				done();
-			}, true);
-		});
-
-		it('using undefined should fail', function (done) {
-			sendTransaction(undefined, function (err, res) {
-				node.expect(res).to.have.property('success').to.not.be.ok;
-				node.expect(res).to.have.property('message').to.equal('Invalid transaction body - Empty trs passed');
-				done();
-			}, true);
-		});
-
-		it('using NaN should fail', function (done) {
-			sendTransaction(NaN, function (err, res) {
-				node.expect(res).to.have.property('success').to.not.be.ok;
-				node.expect(res).to.have.property('message').to.equal('Invalid transaction body - Empty trs passed');
-				done();
-			}, true);
-		});
-
-		it('using integer should fail', function (done) {
-			sendTransaction(0, function (err, res) {
-				node.expect(res).to.have.property('success').to.not.be.ok;
-				node.expect(res).to.have.property('message').to.equal('Invalid transaction body - Empty trs passed');
-				done();
-			}, true);
-		});
-
-		it('using empty string should fail', function (done) {
-			sendTransaction('', function (err, res) {
-				node.expect(res).to.have.property('success').to.not.be.ok;
-				node.expect(res).to.have.property('message').to.equal('Invalid transaction body - Empty trs passed');
-				done();
-			}, true);
-		});
-
-		it('using empty array should fail', function (done) {
-			sendTransaction([], function (err, res) {
-				node.expect(res).to.have.property('success').to.not.be.ok;
-				node.expect(res).to.have.property('message').to.equal('Invalid transaction body - Empty trs passed');
-				done();
-			}, true);
-		});
-
-		it('using empty object should fail', function (done) {
-			sendTransaction({}, function (err, res) {
-				node.expect(res).to.have.property('success').not.to.be.ok;
-				node.expect(res).to.have.property('message').to.equal('Invalid transaction body - Empty trs passed');
-				done();
-			}, true);
-		});
+		shared.invalidTxs();
 	});
 
 	describe('transaction processing', function () {
