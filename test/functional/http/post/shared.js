@@ -11,10 +11,10 @@ var getUnconfirmedTransactionPromise = node.Promise.promisify(getUnconfirmedTran
 var sendTransaction = require('../../../common/complexTransactions').sendTransaction;
 
 var sentences = {
-	emptyTx : 									'Invalid transaction body - Empty trs passed',
-	unknownTx : 								'Invalid transaction body - Unknown transaction type ',
-	failedId : 									'Failed to get transaction id',
-	invalidId:									'Invalid transaction id'
+	emptyTx : 			'Invalid transaction body - Empty trs passed',
+	unknownTx : 		'Invalid transaction body - Unknown transaction type ',
+	failedId : 			'Failed to get transaction id',
+	invalidId:			'Invalid transaction id'
 };
 
 var tests = [
@@ -38,7 +38,7 @@ var tests = [
 	{describe: 'empty object',			args: {}}
 ];
 
-function confirmationPhase (goodTransactions, badTransactions){
+function confirmationPhase (goodTransactions, badTransactions) {
 
 	describe('before new block', function () {
 
@@ -87,26 +87,7 @@ function confirmationPhase (goodTransactions, badTransactions){
 	});
 };
 
-function invalidTxs (){
-
-	// var tests = [
-	// 	{describe: 'null',							args: null,						expected: sentences.emptyTx},
-	// 	{describe: 'undefined',					args: undefined,			expected: sentences.emptyTx},
-	// 	{describe: 'NaN',								args: NaN,						expected: sentences.emptyTx},
-	// 	{describe: 'Infinity',					args: Infinity,				expected: sentences.emptyTx},
-	// 	{describe: '0 integer',					args: 0,							expected: sentences.emptyTx},
-	// 	{describe: 'negative integer',	args: -1,							expected: sentences.emptyTx},
-	// 	{describe: 'float',							args: 1.2,						expected: sentences.emptyTx},
-	// 	{describe: 'negative float',		args: -1.2,						expected: sentences.emptyTx},
-	// 	{describe: 'empty string',			args: '',							expected: sentences.emptyTx},
-	// {describe: '0 as string',				args: '0',						expected: sentences.unknownTx + 'undefined'},
-	// {describe: 'regular string',		args: String('abc'),	expected: sentences.unknownTx + 'undefined'},
-	// {describe: 'date',							args: new Date(),			expected: sentences.unknownTx + 'undefined'},
-	// 	{describe: 'true boolean',			args: true,						expected: sentences.emptyTx},
-	// 	{describe: 'false boolean',			args: false,					expected: sentences.emptyTx},
-	// 	{describe: 'empty array',				args: [],							expected: sentences.emptyTx},
-	// 	{describe: 'empty object',			args: {},							expected: sentences.emptyTx}
-	// ];
+function invalidTxs () {
 
 	tests.forEach(function (test) {
 		it('using ' + test.describe + ' should fail', function (done) {
@@ -119,9 +100,74 @@ function invalidTxs (){
 	});
 };
 
+function invalidAssets (account, option, badTransactions) {
+
+	var transaction;
+
+	beforeEach(function () {
+		switch(option) {
+			case 'signature':
+				transaction = node.lisk.signature.createSignature(account.password, node.randomPassword());
+				break;
+			case 'delegate':
+				transaction = node.lisk.delegate.createDelegate(account.password, node.randomDelegateName());
+				break;
+		}
+	});
+
+	describe('using invalid asset values', function () {
+
+		tests.forEach(function (test) {
+			it('using ' + test.describe + ' should fail', function (done) {
+				transaction.asset = test.args;
+
+				sendTransaction(transaction, function (err, res) {
+					node.expect(res).to.have.property('success').to.be.not.ok;
+					node.expect(res).to.have.property('message');
+					badTransactions.push(transaction);
+					done();
+				}, true);
+			});
+		});
+	});
+
+	describe('using invalid asset.' + option + ' values', function () {
+
+		tests.forEach(function (test) {
+			it('using ' + test.describe + ' should fail', function (done) {
+				transaction.asset[option] = test.args;
+
+				sendTransaction(transaction, function (err, res) {
+					node.expect(res).to.have.property('success').to.be.not.ok;
+					node.expect(res).to.have.property('message');
+					badTransactions.push(transaction);
+					done();
+				}, true);
+			});
+		});
+	});
+
+	describe('using invalid asset.' + option + ' property values', function () {
+
+		tests.forEach(function (test) {
+			it('using ' + test.describe + ' should fail', function (done) {
+				transaction.asset[option][Object.keys(transaction.asset[option])[0]] = test.args;
+
+				sendTransaction(transaction, function (err, res) {
+					node.expect(res).to.have.property('success').to.be.not.ok;
+					node.expect(res).to.have.property('message');
+					badTransactions.push(transaction);
+					done();
+				}, true);
+			});
+		});
+	});
+}
+
 module.exports = {
 	sentences: sentences,
 	tests: tests,
 	confirmationPhase: confirmationPhase,
-	invalidTxs: invalidTxs
+	invalidTxs: invalidTxs,
+	invalidAssets: invalidAssets
 };
