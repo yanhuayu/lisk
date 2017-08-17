@@ -12,3 +12,4 @@ require('./ws/transport.transactions');
 require('./ws/transport.transactions.stress');
 require('./http/post/0.transfer');
 require('./http/post/1.second.secret');
+require('./http/post/2.delegate');
