@@ -5,7 +5,7 @@ var shared = require('./shared');
 var constants = require('../../../../helpers/constants');
 
 var sendTransaction = require('../../../common/complexTransactions').sendTransaction;
-var sendLISK = require('../../../common/complexTransactions').sendLISK;
+var creditAccount = require('../../../common/complexTransactions').creditAccount;
 
 function registerDelegate (account, done) {
 	var transaction = node.lisk.delegate.createDelegate(account.password, account.username);
@@ -17,7 +17,7 @@ function registerDelegate (account, done) {
 	}, true);
 }
 
-describe('POST /api/transactions (type 3)', function () {
+describe('POST /api/transactions (type 3) votes', function () {
 
 	var badTransactions = [];
 	var goodTransactions = [];
@@ -28,11 +28,9 @@ describe('POST /api/transactions (type 3)', function () {
 	var accountNoFunds = node.randomAccount();
 	var accountScarceFunds = node.randomAccount();
 
-	var accounts33;
 	var account33 = node.randomAccount();
 	var delegates33 = [];
 
-	var accounts101;
 	var account101 = node.randomAccount();
 	var delegates101 = [];
 
@@ -40,97 +38,67 @@ describe('POST /api/transactions (type 3)', function () {
 
 	before(function (done) {
 		// Crediting accounts
-		sendLISK({
-			secret: node.gAccount.password,
-			amount: 100000000000,
-			address: account.address
-		}, function (err, res) {
+		creditAccount(account.address, 100000000000, function (err, res) {
 			node.expect(res).to.have.property('success').to.be.ok;
 			node.expect(res).to.have.property('transactionId').that.is.not.empty;
 		});
 
-		sendLISK({
-			secret: node.gAccount.password,
-			amount: constants.fees.vote,
-			address: accountScarceFunds.address
-		}, function (err, res) {
+		creditAccount(accountScarceFunds.address, constants.fees.vote, function (err, res) {
 			node.expect(res).to.have.property('success').to.be.ok;
 			node.expect(res).to.have.property('transactionId').that.is.not.empty;
 		});
 
-		sendLISK({
-			secret: node.gAccount.password,
-			amount: 100000000000,
-			address: node.eAccount.address
-		}, function (err, res) {
+		creditAccount(node.eAccount.address, 100000000000, function (err, res) {
 			node.expect(res).to.have.property('success').to.be.ok;
 			node.expect(res).to.have.property('transactionId').that.is.not.empty;
 		});
 
-		sendLISK({
-			secret: node.gAccount.password,
-			amount: 100000000000,
-			address: account33.address
-		}, function (err, res) {
+		creditAccount(account33.address, 100000000000, function (err, res) {
 			node.expect(res).to.have.property('success').to.be.ok;
 			node.expect(res).to.have.property('transactionId').that.is.not.empty;
 		});
 
-		sendLISK({
-			secret: node.gAccount.password,
-			amount: 300000000000,
-			address: account101.address
-		}, function (err, res) {
+		creditAccount(account101.address, 300000000000, function (err, res) {
 			node.expect(res).to.have.property('success').to.be.ok;
 			node.expect(res).to.have.property('transactionId').that.is.not.empty;
 		});
 
 		// Creating 33 delegates
 		node.async.times(33, function (n, eachCb) {
-			accounts33 = node.randomAccount();
-			accounts33.username = 'delegate33@' + n;
+			var accounts33 = node.randomAccount();
 			delegates33.push(accounts33);
-			sendLISK({
-				secret: node.gAccount.password,
-				amount: constants.fees.delegate,
-				address: accounts33.address
-			}, function (err, res) {
+			creditAccount(accounts33.address, constants.fees.delegate, function (err, res) {
 				node.expect(res).to.have.property('success').to.be.ok;
 				node.expect(res).to.have.property('transactionId').that.is.not.empty;
 				return eachCb();
 			});
 		}, function (err) {
-			node.waitForBlocks(6, function () {
+			node.waitForBlocks(7, function () {
 				node.async.times(33, function (n, eachCb) {
 					registerDelegate(delegates33[n], function (err, res) {
 						return eachCb();
 					});
 				});
-				node.waitForBlocks(6, done);
 			});
 		});
 
 		// Creating 101 delegates
 		node.async.times(101, function (n, eachCb) {
-			accounts101 = node.randomAccount();
-			accounts101.username = 'delegate101@' + n;
+			var accounts101 = node.randomAccount();
 			delegates101.push(accounts101);
-			sendLISK({
-				secret: node.gAccount.password,
-				amount: constants.fees.delegate,
-				address: accounts101.address
-			}, function (err, res) {
+			creditAccount(accounts101.address, constants.fees.delegate, function (err, res) {
 				node.expect(res).to.have.property('success').to.be.ok;
 				node.expect(res).to.have.property('transactionId').that.is.not.empty;
 				return eachCb();
 			});
 		}, function (err) {
-			node.waitForBlocks(6, function () {
+			node.waitForBlocks(7, function () {
 				node.async.times(101, function (n, eachCb) {
 					registerDelegate(delegates101[n], function (err, res) {
 						return eachCb();
 					});
 				});
+				node.waitForBlocks(7, done);
 			});
 		});
 	});
@@ -161,7 +129,7 @@ describe('POST /api/transactions (type 3)', function () {
 			}, true);
 		});
 
-		it('using invalid vote symbol should fail', function (done) {
+		it('using invalid vote operator should fail', function (done) {
 			transaction = node.lisk.vote.createVote(account.password, ['x' + node.eAccount.publicKey]);
 
 			sendTransaction(transaction, function (err, res) {
@@ -171,11 +139,33 @@ describe('POST /api/transactions (type 3)', function () {
 				done();
 			}, true);
 		});
+
+		it('using no vote operator should fail', function (done) {
+			transaction = node.lisk.vote.createVote(account.password, [node.eAccount.publicKey]);
+
+			sendTransaction(transaction, function (err, res) {
+				node.expect(res).to.have.property('success').to.be.not.ok;
+				node.expect(res).to.have.property('message').to.equal('Invalid vote at index 0 - Invalid vote format');
+				badTransactions.push(transaction);
+				done();
+			}, true);
+		});
+
+		it('using one null inside votes should fail', function (done) {
+			transaction = node.lisk.vote.createVote(account.password, [null]);
+
+			sendTransaction(transaction, function (err, res) {
+				node.expect(res).to.have.property('success').to.be.not.ok;
+				node.expect(res).to.have.property('message').to.equal('Invalid vote at index 0 - Invalid vote type');
+				badTransactions.push(transaction);
+				done();
+			}, true);
+		});
 	});
 
 	describe('transactions processing', function () {
 
-		it('voting delegates with no funds should fail', function (done) {
+		it('voting with no funds should fail', function (done) {
 			accountNoFunds = node.randomAccount();
 			transaction = node.lisk.vote.createVote(accountNoFunds.password, ['+' + node.eAccount.publicKey]);
 
@@ -187,7 +177,7 @@ describe('POST /api/transactions (type 3)', function () {
 			}, true);
 		});
 
-		it('voting delegate with scarce funds should be ok', function (done) {
+		it('voting with scarce funds should be ok', function (done) {
 			transaction = node.lisk.vote.createVote(accountScarceFunds.password, ['+' + node.eAccount.publicKey]);
 
 			sendTransaction(transaction, function (err, res) {
@@ -198,7 +188,7 @@ describe('POST /api/transactions (type 3)', function () {
 			}, true);
 		});
 
-		it('unvoting delegate not voted should fail', function (done) {
+		it('unvoting not voted should fail', function (done) {
 			transaction = node.lisk.vote.createVote(account.password, ['-' + node.eAccount.publicKey]);
 
 			sendTransaction(transaction, function (err, res) {
@@ -209,7 +199,7 @@ describe('POST /api/transactions (type 3)', function () {
 			}, true);
 		});
 
-		it('voting delegate with good schema transaction should be ok', function (done) {
+		it('voting with valid params should be ok', function (done) {
 			transaction = node.lisk.vote.createVote(account.password, ['+' + node.eAccount.publicKey]);
 
 			sendTransaction(transaction, function (err, res) {
@@ -220,7 +210,7 @@ describe('POST /api/transactions (type 3)', function () {
 			}, true);
 		});
 
-		it('self voting with good schema transaction should be ok', function (done) {
+		it('self voting with valid params should be ok', function (done) {
 			transaction = node.lisk.vote.createVote(node.eAccount.password, ['+' + node.eAccount.publicKey]);
 
 			sendTransaction(transaction, function (err, res) {

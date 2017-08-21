@@ -5,9 +5,9 @@ var shared = require('./shared');
 var constants = require('../../../../helpers/constants');
 
 var sendTransaction = require('../../../common/complexTransactions').sendTransaction;
-var sendLISK = require('../../../common/complexTransactions').sendLISK;
+var creditAccount = require('../../../common/complexTransactions').creditAccount;
 
-describe('POST /api/transactions (type 1)', function () {
+describe('POST /api/transactions (type 1) register second secret', function () {
 
 	var badTransactions = [];
 	var goodTransactions = [];
@@ -24,30 +24,21 @@ describe('POST /api/transactions (type 1)', function () {
 
 	// Crediting accounts
 	before(function (done) {
-		sendLISK({
-			secret: node.gAccount.password,
-			amount: 100000000000,
-			address: account.address
-		}, function (err, res) {
+
+		creditAccount(account.address, 100000000000, function (err, res) {
 			node.expect(res).to.have.property('success').to.be.ok;
 			node.expect(res).to.have.property('transactionId').that.is.not.empty;
-			sendLISK({
-				secret: node.gAccount.password,
-				amount: 100000000000,
-				address: accountEmptySecondPassword.address
-			}, function (err, res) {
-				node.expect(res).to.have.property('success').to.be.ok;
-				node.expect(res).to.have.property('transactionId').that.is.not.empty;
-				sendLISK({
-					secret: node.gAccount.password,
-					amount: constants.fees.secondsignature,
-					address: accountScarceFunds.address
-				}, function (err, res) {
-					node.expect(res).to.have.property('success').to.be.ok;
-					node.expect(res).to.have.property('transactionId').that.is.not.empty;
-					node.onNewBlock(done);
-				});
-			});
+		});
+
+		creditAccount(accountEmptySecondPassword.address, 100000000000, function (err, res) {
+			node.expect(res).to.have.property('success').to.be.ok;
+			node.expect(res).to.have.property('transactionId').that.is.not.empty;
+		});
+
+		creditAccount(accountScarceFunds.address, constants.fees.secondsignature, function (err, res) {
+			node.expect(res).to.have.property('success').to.be.ok;
+			node.expect(res).to.have.property('transactionId').that.is.not.empty;
+			node.onNewBlock(done);
 		});
 	});
 
@@ -58,7 +49,7 @@ describe('POST /api/transactions (type 1)', function () {
 
 	describe('transactions processing', function () {
 
-		it('setting second secret with no funds should fail', function (done) {
+		it('with no funds should fail', function (done) {
 			transaction = node.lisk.signature.createSignature(accountNoFunds.password, accountNoFunds.secondPassword);
 
 			sendTransaction(transaction, function (err, res) {
@@ -69,7 +60,7 @@ describe('POST /api/transactions (type 1)', function () {
 			}, true);
 		});
 
-		it('setting second secret with exact funds should be ok', function (done) {
+		it('with exact funds should be ok', function (done) {
 			transaction = node.lisk.signature.createSignature(accountScarceFunds.password, accountScarceFunds.secondPassword);
 
 			sendTransaction(transaction, function (err, res) {
@@ -80,7 +71,7 @@ describe('POST /api/transactions (type 1)', function () {
 			}, true);
 		});
 
-		it('setting second secret with empty second passphrase transaction should be ok', function (done) {
+		it('with empty second passphrase transaction should be ok', function (done) {
 			transaction = node.lisk.signature.createSignature(accountEmptySecondPassword.password, accountEmptySecondPassword.secondPassword);
 
 			sendTransaction(transaction, function (err, res) {
@@ -91,7 +82,7 @@ describe('POST /api/transactions (type 1)', function () {
 			}, true);
 		});
 
-		it('setting second secret with good schema transaction should be ok', function (done) {
+		it('with valid params should be ok', function (done) {
 			transaction = node.lisk.signature.createSignature(account.password, account.secondPassword);
 
 			sendTransaction(transaction, function (err, res) {
@@ -145,8 +136,7 @@ describe('POST /api/transactions (type 1)', function () {
 				}, true);
 			});
 
-			// TODO: waiting to fix lisk-js #285
-			it.skip('using correct empty second passphrase should be ok', function (done) {
+			it('using correct empty second passphrase should be ok', function (done) {
 				transaction = node.lisk.transaction.createTransaction(node.eAccount.address, 1, accountEmptySecondPassword.password, accountEmptySecondPassword.secondPassword);
 
 				sendTransaction(transaction, function (err, res) {
@@ -210,8 +200,7 @@ describe('POST /api/transactions (type 1)', function () {
 				}, true);
 			});
 
-			// TODO: waiting to fix lisk-js #285
-			it.skip('using correct empty second passphrase should be ok', function (done) {
+			it('using correct empty second passphrase should be ok', function (done) {
 				transaction = node.lisk.delegate.createDelegate(accountEmptySecondPassword.password, accountEmptySecondPassword.username, accountEmptySecondPassword.secondPassword);
 
 				sendTransaction(transaction, function (err, res) {
@@ -258,8 +247,7 @@ describe('POST /api/transactions (type 1)', function () {
 				}, true);
 			});
 
-			// TODO: waiting to fix lisk-js #285
-			it.skip('using correct empty second passphrase should be ok', function (done) {
+			it('using correct empty second passphrase should be ok', function (done) {
 				transaction = node.lisk.vote.createVote(accountEmptySecondPassword.password, ['+' + node.eAccount.publicKey], accountEmptySecondPassword.secondPassword);
 
 				sendTransaction(transaction, function (err, res) {

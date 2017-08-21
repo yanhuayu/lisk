@@ -6,7 +6,7 @@ var constants = require('../../../../helpers/constants');
 
 var sendTransaction = require('../../../common/complexTransactions').sendTransaction;
 
-describe('POST /api/transactions (type 0)', function () {
+describe('POST /api/transactions (type 0) transfer funds', function () {
 
 	var badTransactions = [];
 	var goodTransactions = [];
@@ -54,7 +54,7 @@ describe('POST /api/transactions (type 0)', function () {
 			});
 		});
 
-		it('sending funds from the genesis account should fail', function (done) {
+		it('from the genesis account should fail', function (done) {
 			var signedTransactionFromGenesis = {
 				type: 0,
 				amount: 1000,
