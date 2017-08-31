@@ -3,15 +3,15 @@
 var node = require('../../../node');
 
 var sendTransaction = require('../../../common/complexTransactions').sendTransaction;
-
 var getTransaction = require('../../../common/complexTransactions').getTransaction;
 var getUnconfirmedTransaction = require('../../../common/complexTransactions').getUnconfirmedTransaction;
 var getPendingMultisignature = require('../../../common/complexTransactions').getPendingMultisignature;
 
+var sendTransactionPromise = node.Promise.promisify(sendTransaction);
 var getTransactionPromise = node.Promise.promisify(getTransaction);
 var getUnconfirmedTransactionPromise = node.Promise.promisify(getUnconfirmedTransaction);
 var getPendingMultisignaturePromise = node.Promise.promisify(getPendingMultisignature);
-
+var onNewBlockPromise = node.Promise.promisify(node.onNewBlock);
 
 var sentences = {
 	emptyTx : 			'Invalid transaction body - Empty trs passed',
@@ -77,8 +77,8 @@ function confirmationPhase (goodTransactions, badTransactions, pendingMultisigna
 
 	describe('after new block', function () {
 
-		before(function (done) {
-			node.onNewBlock(done);
+		before(function () {
+			return onNewBlockPromise();
 		});
 
 		it('bad transactions should not be confirmed', function () {
@@ -133,12 +133,11 @@ function confirmationPhase (goodTransactions, badTransactions, pendingMultisigna
 function invalidTxs () {
 
 	tests.forEach(function (test) {
-		it('using ' + test.describe + ' should fail', function (done) {
-			sendTransaction(test.args, function (err, res) {
+		it('using ' + test.describe + ' should fail', function () {
+			return sendTransactionPromise(test.args).then(function (res) {
 				node.expect(res).to.have.property('success').to.not.be.ok;
 				node.expect(res).to.have.property('message').that.is.not.empty;
-				done();
-			}, true);
+			});
 		});
 	});
 };
@@ -161,21 +160,20 @@ function invalidAssets (account, option, badTransactions) {
 			case 'multisignature':
 				transaction = node.lisk.multisignature.createMultisignature(account.password, null, ['+' + node.eAccount.publicKey], 1, 2);
 				break;
-		}
+		};
 	});
 
 	describe('using invalid asset values', function () {
 
 		tests.forEach(function (test) {
-			it('using ' + test.describe + ' should fail', function (done) {
+			it('using ' + test.describe + ' should fail', function () {
 				transaction.asset = test.args;
 
-				sendTransaction(transaction, function (err, res) {
+				return sendTransactionPromise(transaction).then(function (res) {
 					node.expect(res).to.have.property('success').to.be.not.ok;
 					node.expect(res).to.have.property('message').that.is.not.empty;
 					badTransactions.push(transaction);
-					done();
-				}, true);
+				});
 			});
 		});
 	});
@@ -183,15 +181,14 @@ function invalidAssets (account, option, badTransactions) {
 	describe('using invalid asset.' + option + ' values', function () {
 
 		tests.forEach(function (test) {
-			it('using ' + test.describe + ' should fail', function (done) {
+			it('using ' + test.describe + ' should fail', function () {
 				transaction.asset[option] = test.args;
 
-				sendTransaction(transaction, function (err, res) {
+				return sendTransactionPromise(transaction).then(function (res) {
 					node.expect(res).to.have.property('success').to.be.not.ok;
 					node.expect(res).to.have.property('message').that.is.not.empty;
 					badTransactions.push(transaction);
-					done();
-				}, true);
+				});
 			});
 		});
 	});

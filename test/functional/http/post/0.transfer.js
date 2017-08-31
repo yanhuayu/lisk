@@ -5,6 +5,7 @@ var shared = require('./shared');
 var constants = require('../../../../helpers/constants');
 
 var sendTransaction = require('../../../common/complexTransactions').sendTransaction;
+var sendTransactionPromise = node.Promise.promisify(sendTransaction);
 
 describe('POST /api/transactions (type 0) transfer funds', function () {
 
@@ -21,40 +22,37 @@ describe('POST /api/transactions (type 0) transfer funds', function () {
 		var account = node.randomAccount();
 		var goodTransaction = node.randomTx();
 
-		it('using zero amount should fail', function (done) {
+		it('using zero amount should fail', function () {
 			var transaction = node.lisk.transaction.createTransaction(account.address, 0, node.gAccount.password);
 
-			sendTransaction(transaction, function (err, res) {
+			return sendTransactionPromise(transaction).then(function (res) {
 				node.expect(res).to.have.property('success').to.be.not.ok;
 				node.expect(res).to.have.property('message').to.equal('Invalid transaction amount');
 				badTransactions.push(transaction);
-				done();
 			});
 		});
 
-		it('when sender has no funds should fail', function (done) {
+		it('when sender has no funds should fail', function () {
 			var transaction = node.lisk.transaction.createTransaction('1L', 1, account.password);
 
-			sendTransaction(transaction, function (err, res) {
+			return sendTransactionPromise(transaction).then(function (res) {
 				node.expect(res).to.have.property('success').to.be.not.ok;
 				node.expect(res).to.have.property('message').to.equal('Account does not have enough LSK: ' + account.address + ' balance: 0');
 				badTransactions.push(transaction);
-				done();
 			});
 		});
 
-		it('using entire balance should fail', function (done) {
+		it('using entire balance should fail', function () {
 			var transaction = node.lisk.transaction.createTransaction(account.address, Math.floor(node.gAccount.balance), node.gAccount.password);
 
-			sendTransaction(transaction, function (err, res) {
+			return sendTransactionPromise(transaction).then(function (res) {
 				node.expect(res).to.have.property('success').to.be.not.ok;
 				node.expect(res).to.have.property('message').to.match(/^Account does not have enough LSK: [0-9]+L balance: /);
 				badTransactions.push(transaction);
-				done();
 			});
 		});
 
-		it('from the genesis account should fail', function (done) {
+		it('from the genesis account should fail', function () {
 			var signedTransactionFromGenesis = {
 				type: 0,
 				amount: 1000,
@@ -68,28 +66,25 @@ describe('POST /api/transactions (type 0) transfer funds', function () {
 				fee: 10000000
 			};
 
-			sendTransaction(signedTransactionFromGenesis, function (err, res) {
+			return sendTransactionPromise(signedTransactionFromGenesis).then(function (res) {
 				node.expect(res).to.have.property('success').to.be.not.ok;
 				node.expect(res).to.have.property('message').equals('Invalid sender. Can not send from genesis account');
 				badTransactions.push(signedTransactionFromGenesis);
-				done();
 			});
 		});
 
-		it('when sender has funds should be ok', function (done) {
-			sendTransaction(goodTransaction, function (err, res) {
+		it('when sender has funds should be ok', function () {
+			return sendTransactionPromise(goodTransaction).then(function (res) {
 				node.expect(res).to.have.property('success').to.be.ok;
 				node.expect(res).to.have.property('transactionId').to.equal(goodTransaction.id);
 				goodTransactions.push(goodTransaction);
-				done();
 			});
 		});
 
-		it('sending transaction with same id twice should fail', function (done) {
-			sendTransaction(goodTransaction, function (err, res) {
+		it('sending transaction with same id twice should fail', function () {
+			return sendTransactionPromise(goodTransaction).then(function (res) {
 				node.expect(res).to.have.property('success').to.be.not.ok;
 				node.expect(res).to.have.property('message').to.equal('Transaction is already processed: ' + goodTransaction.id);
-				done();
 			});
 		});
 	});
