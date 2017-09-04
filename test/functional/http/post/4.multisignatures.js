@@ -506,6 +506,34 @@ describe('POST /api/transactions (type 4) register multisignature', function () 
 				});
 			});
 		});
+
+		describe('type 5 - registering dapp', function () {
+
+			it('regular scenario(3,2) should be ok', function () {
+				transaction = node.lisk.dapp.createDapp(scenarios.regular.account.password, null, node.randomApplication());
+
+				return sendTransactionPromise(transaction).then(function (res) {
+					node.expect(res).to.have.property('success').to.be.ok;
+					node.expect(res).to.have.property('transactionId').to.equal(transaction.id);
+					scenarios.regular.tx = transaction;
+				});
+			});
+
+			describe('signing transactions', function () {
+
+				it('with min required signatures regular scenario(3,2) should be ok and confirmed', function () {
+					return node.Promise.all(node.Promise.map(scenarios.regular.members, function (member) {
+						signature = node.lisk.multisignature.signTransaction(scenarios.regular.tx, member.password);
+
+						return sendSignaturePromise(signature, scenarios.regular.tx).then(function (res) {
+							node.expect(res).to.have.property('success').to.be.ok;
+						});
+					})).then(function (res) {
+						goodTransactionsEnforcement.push(scenarios.regular.tx);
+					});
+				});
+			});
+		});
 	});
 
 	describe('enforcement confirmation', function () {

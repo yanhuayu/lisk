@@ -160,6 +160,9 @@ function invalidAssets (account, option, badTransactions) {
 			case 'multisignature':
 				transaction = node.lisk.multisignature.createMultisignature(account.password, null, ['+' + node.eAccount.publicKey], 1, 2);
 				break;
+			case 'dapp':
+				transaction = node.lisk.dapp.createDapp(account.password, null, node.guestbookDapp);
+				break;
 		};
 	});
 

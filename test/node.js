@@ -316,6 +316,21 @@ node.randomApplicationName = function () {
 	});
 };
 
+// Test random application
+node.randomApplication = function () {
+	var application = {
+		category: node.randomNumber(0,9),
+		name: node.randomApplicationName(),
+		description: 'Blockchain based home monitoring tool',
+		tags: 'monitoring temperature power sidechain',
+		type: node.randomNumber(0,2),
+		link: 'https://' + node.randomApplicationName() + '.zip',
+		icon: 'https://raw.githubusercontent.com/MaxKK/blockDataDapp/master/icon.png'
+	};
+
+	return application;
+};
+
 // Returns a basic random account
 node.randomAccount = function () {
 	var account = {
