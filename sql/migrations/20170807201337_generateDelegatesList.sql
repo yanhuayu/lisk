@@ -5,7 +5,17 @@
 BEGIN;
 
 -- Enable crypto extension
-CREATE EXTENSION pgcrypto;
+--CREATE EXTENSION pgcrypto;   FIXME:普通用户没有权限添加,添加了也没有判断是否存在
+
+
+--\c lisk_test;
+--DROP DATABASE lisk_main;
+--CREATE DATABASE lisk_main OWNER sean;
+--GRANT ALL PRIVILEGES ON DATABASE lisk_main to sean;
+--\c lisk_main;
+--CREATE EXTENSION pgcrypto;
+
+
 
 -- Create function that generate delegates list
 -- @IMMUTABLE - always returns the same result
