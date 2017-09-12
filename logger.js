@@ -8,7 +8,7 @@ var path = require('path');
 
 require('colors');
 
-module.exports = function (config) {
+module.exports = function(config) {
 	config = config || {};
 	var exports = {};
 
@@ -38,13 +38,15 @@ module.exports = function (config) {
 	config.errorLevel = config.errorLevel || 'log';
 
 	child_process.execSync('mkdir -p ' + path.dirname(config.filename));
-	var log_file = fs.createWriteStream(config.filename, {flags: 'a'});
+	var log_file = fs.createWriteStream(config.filename, {
+		flags: 'a'
+	});
 
-	exports.setLevel = function (errorLevel) {
+	exports.setLevel = function(errorLevel) {
 		config.errorLevel = errorLevel;
 	};
 
-	function snipsecret (data) {
+	function snipsecret(data) {
 		for (var key in data) {
 			if (key.search(/secret/i) > -1) {
 				data[key] = 'XXXXXXXXXX';
@@ -53,8 +55,8 @@ module.exports = function (config) {
 		return data;
 	}
 
-	Object.keys(config.levels).forEach(function (name) {
-		function log (message, data) {
+	Object.keys(config.levels).forEach(function(name) {
+		function log(message, data) {
 			var log = {
 				level: name,
 				timestamp: strftime('%F %T', new Date())
@@ -62,13 +64,15 @@ module.exports = function (config) {
 
 			if (message instanceof Error) {
 				log.message = message.stack;
-			} else {
+			}
+			else {
 				log.message = message;
 			}
 
 			if (data && util.isObject(data)) {
 				log.data = JSON.stringify(snipsecret(data));
-			} else {
+			}
+			else {
 				log.data = data;
 			}
 
@@ -77,16 +81,18 @@ module.exports = function (config) {
 			if (config.levels[config.errorLevel] <= config.levels[log.level]) {
 				if (log.data) {
 					log_file.write(util.format('[%s] %s | %s - %s\n', log.symbol, log.timestamp, log.message, log.data));
-				} else {
+				}
+				else {
 					log_file.write(util.format('[%s] %s | %s\n', log.symbol, log.timestamp, log.message));
 				}
 			}
 
 			if (config.echo && config.levels[config.echo] <= config.levels[log.level]) {
 				if (log.data) {
-					console.log('['+log.symbol.bgYellow.black+']', log.timestamp.grey, '|', log.message, '-', log.data);
-				} else {
-					console.log('['+log.symbol.bgYellow.black+']', log.timestamp.grey, '|', log.message);
+					console.log('[' + log.symbol.bgYellow.black + ']', log.timestamp.grey, '|', log.message, '-', log.data);
+				}
+				else {
+					console.log('[' + log.symbol.bgYellow.black + ']', log.timestamp.grey, '|', log.message);
 				}
 			}
 		}

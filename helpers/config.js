@@ -14,7 +14,7 @@ var constants = require('../helpers/constants.js');
  * @param {Object} packageJson
  * @returns {Object} configData
  */
-function Config (packageJson) {
+function Config(packageJson) {
 
 	program
 		.version(packageJson.version)
@@ -34,10 +34,11 @@ function Config (packageJson) {
 	if (!appConfig.length) {
 		console.log('Failed to read config file');
 		process.exit(1);
-	} else {
+	}
+	else {
 		appConfig = JSON.parse(appConfig);
 	}
-
+	console.log(appConfig);
 	if (program.port) {
 		appConfig.port = +program.port;
 	}
@@ -56,16 +57,18 @@ function Config (packageJson) {
 
 	if (program.peers) {
 		if (typeof program.peers === 'string') {
-			appConfig.peers.list = program.peers.split(',').map(function (peer) {
+			appConfig.peers.list = program.peers.split(',').map(function(peer) {
 				peer = peer.split(':');
 				return {
 					ip: peer.shift(),
 					port: peer.shift() || appConfig.port
 				};
 			});
-		} else {
+		}
+		else {
 			appConfig.peers.list = [];
 		}
+		console.log(appConfig.peers.list);
 	}
 
 	if (program.log) {
@@ -88,7 +91,8 @@ function Config (packageJson) {
 	if (!valid) {
 		console.log('Failed to validate config data', validator.getLastErrors());
 		process.exit(1);
-	} else {
+	}
+	else {
 		validateForce(appConfig);
 		return appConfig;
 	}
@@ -99,7 +103,7 @@ function Config (packageJson) {
  * @private
  * @param {Object} configData
  */
-function validateForce (configData) {
+function validateForce(configData) {
 	if (configData.forging.force) {
 		var index = constants.nethashes.indexOf(configData.nethash);
 

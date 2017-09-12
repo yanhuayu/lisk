@@ -13,7 +13,8 @@ var sql = require('../sql/loader.js');
 require('colors');
 
 // Private fields
-var modules, library, self, __private = {}, shared = {};
+var modules, library, self, __private = {},
+	shared = {};
 
 __private.loaded = false;
 __private.isActive = false;
@@ -36,7 +37,7 @@ __private.retries = 5;
  * @return {setImmediateCallback} Callback function with `self` as data.
  */
 // Constructor
-function Loader (cb, scope) {
+function Loader(cb, scope) {
 	library = {
 		logger: scope.logger,
 		db: scope.db,
@@ -71,7 +72,7 @@ function Loader (cb, scope) {
  * Sets private network object with height 0 and peers empty array.
  * @private
  */
-__private.initialize = function () {
+__private.initialize = function() {
 	__private.network = {
 		height: 0, // Network height
 		peers: [] // "Good" peers and with height close to network height
@@ -88,7 +89,7 @@ __private.initialize = function () {
  * @param {boolean} turnOn
  * @emits loader/sync
  */
-__private.syncTrigger = function (turnOn) {
+__private.syncTrigger = function(turnOn) {
 	if (turnOn === false && __private.syncIntervalId) {
 		library.logger.trace('Clearing sync interval');
 		clearTimeout(__private.syncIntervalId);
@@ -96,7 +97,7 @@ __private.syncTrigger = function (turnOn) {
 	}
 	if (turnOn === true && !__private.syncIntervalId) {
 		library.logger.trace('Setting sync interval');
-		setImmediate(function nextSyncTrigger () {
+		setImmediate(function nextSyncTrigger() {
 			library.logger.trace('Sync trigger');
 			library.network.io.sockets.emit('loader/sync', {
 				blocks: __private.blocksToSync,
@@ -117,23 +118,28 @@ __private.syncTrigger = function (turnOn) {
  * @implements {async.retry}
  * @implements {__private.initialize}
  */
-__private.syncTimer = function () {
+__private.syncTimer = function() {
 	library.logger.trace('Setting sync timer');
 
-	function nextSync (cb) {
-		library.logger.trace('Sync timer trigger', {loaded: __private.loaded, syncing: self.syncing(), last_receipt: modules.blocks.lastReceipt.get()});
+	function nextSync(cb) {
+		library.logger.trace('Sync timer trigger', {
+			loaded: __private.loaded,
+			syncing: self.syncing(),
+			last_receipt: modules.blocks.lastReceipt.get()
+		});
 
 		if (__private.loaded && !self.syncing() && modules.blocks.lastReceipt.isStale()) {
-			library.sequence.add(function (sequenceCb) {
+			library.sequence.add(function(sequenceCb) {
 				async.retry(__private.retries, __private.sync, sequenceCb);
-			}, function (err) {
+			}, function(err) {
 				if (err) {
 					library.logger.error('Sync timer', err);
 					__private.initialize();
 				}
 				return setImmediate(cb);
 			});
-		} else {
+		}
+		else {
 			return setImmediate(cb);
 		}
 	}
@@ -153,46 +159,50 @@ __private.syncTimer = function () {
  * @param {function} cb
  * @return {setImmediateCallback} cb, err
  */
-__private.loadSignatures = function (cb) {
+__private.loadSignatures = function(cb) {
 	async.waterfall([
-		function (waterCb) {
-			self.getNetwork(function (err, network) {
+		function(waterCb) {
+			self.getNetwork(function(err, network) {
 				if (err) {
 					return setImmediate(waterCb, err);
-				} else {
+				}
+				else {
 					var peer = network.peers[Math.floor(Math.random() * network.peers.length)];
 					return setImmediate(waterCb, null, peer);
 				}
 			});
 		},
-		function (peer, waterCb) {
+		function(peer, waterCb) {
 			library.logger.log('Loading signatures from: ' + peer.string);
-			peer.rpc.getSignatures(function (err, res) {
+			peer.rpc.getSignatures(function(err, res) {
 				if (err) {
-					peer.applyHeaders({state: Peer.STATE.DISCONNECTED});
+					peer.applyHeaders({
+						state: Peer.STATE.DISCONNECTED
+					});
 					return setImmediate(waterCb, err);
-				} else {
-					library.schema.validate(res, schema.loadSignatures, function (err) {
+				}
+				else {
+					library.schema.validate(res, schema.loadSignatures, function(err) {
 						return setImmediate(waterCb, err, res.signatures);
 					});
 				}
 			});
 		},
-		function (signatures, waterCb) {
-			library.sequence.add(function (cb) {
-				async.eachSeries(signatures, function (signature, eachSeriesCb) {
-					async.eachSeries(signature.signatures, function (s, eachSeriesCb) {
+		function(signatures, waterCb) {
+			library.sequence.add(function(cb) {
+				async.eachSeries(signatures, function(signature, eachSeriesCb) {
+					async.eachSeries(signature.signatures, function(s, eachSeriesCb) {
 						modules.multisignatures.processSignature({
 							signature: s,
 							transaction: signature.transaction
-						}, function (err) {
+						}, function(err) {
 							return setImmediate(eachSeriesCb);
 						});
 					}, eachSeriesCb);
 				}, cb);
 			}, waterCb);
 		}
-	], function (err) {
+	], function(err) {
 		return setImmediate(cb, err);
 	});
 };
@@ -213,42 +223,52 @@ __private.loadSignatures = function (cb) {
  * @return {setImmediateCallback} cb, err
  * @todo missed error propagation when balancesSequence.add
  */
-__private.loadTransactions = function (cb) {
+__private.loadTransactions = function(cb) {
 	async.waterfall([
-		function (waterCb) {
-			self.getNetwork(function (err, network) {
+		function(waterCb) {
+			self.getNetwork(function(err, network) {
 				if (err) {
 					return setImmediate(waterCb, err);
-				} else {
+				}
+				else {
 					var peer = network.peers[Math.floor(Math.random() * network.peers.length)];
 					return setImmediate(waterCb, null, peer);
 				}
 			});
 		},
-		function (peer, waterCb) {
+		function(peer, waterCb) {
 			library.logger.log('Loading transactions from: ' + peer.string);
-			peer.rpc.getTransactions(function (err, res) {
+			peer.rpc.getTransactions(function(err, res) {
 				if (err) {
-					peer.applyHeaders({state: Peer.STATE.DISCONNECTED});
+					peer.applyHeaders({
+						state: Peer.STATE.DISCONNECTED
+					});
 					return setImmediate(waterCb, err);
 				}
-				library.schema.validate(res, schema.loadTransactions, function (err) {
+				library.schema.validate(res, schema.loadTransactions, function(err) {
 					if (err) {
 						return setImmediate(waterCb, err[0].message);
-					} else {
+					}
+					else {
 						return setImmediate(waterCb, null, peer, res.transactions);
 					}
 				});
 			});
 		},
-		function (peer, transactions, waterCb) {
-			async.eachSeries(transactions, function (transaction, eachSeriesCb) {
+		function(peer, transactions, waterCb) {
+			async.eachSeries(transactions, function(transaction, eachSeriesCb) {
 				var id = (transaction ? transactions.id : 'null');
 
 				try {
 					transaction = library.logic.transaction.objectNormalize(transaction);
-				} catch (e) {
-					library.logger.debug('Transaction normalization failed', {id: id, err: e.toString(), module: 'loader', tx: transaction});
+				}
+				catch (e) {
+					library.logger.debug('Transaction normalization failed', {
+						id: id,
+						err: e.toString(),
+						module: 'loader',
+						tx: transaction
+					});
 
 					library.logger.warn(['Transaction', id, 'is not valid, peer removed'].join(' '), peer.string);
 					modules.peers.remove(peer.ip, peer.port);
@@ -257,16 +277,16 @@ __private.loadTransactions = function (cb) {
 				}
 
 				return setImmediate(eachSeriesCb);
-			}, function (err) {
+			}, function(err) {
 				return setImmediate(waterCb, err, transactions);
 			});
 		},
-		function (transactions, waterCb) {
-			async.eachSeries(transactions, function (transaction, eachSeriesCb) {
-				library.balancesSequence.add(function (cb) {
+		function(transactions, waterCb) {
+			async.eachSeries(transactions, function(transaction, eachSeriesCb) {
+				library.balancesSequence.add(function(cb) {
 					transaction.bundled = true;
 					modules.transactions.processUnconfirmedTransaction(transaction, false, cb);
-				}, function (err) {
+				}, function(err) {
 					if (err) {
 						// TODO: Validate if must include error propagation.
 						library.logger.debug(err);
@@ -275,7 +295,7 @@ __private.loadTransactions = function (cb) {
 				});
 			}, waterCb);
 		}
-	], function (err) {
+	], function(err) {
 		return setImmediate(cb, err);
 	});
 };
@@ -305,41 +325,45 @@ __private.loadTransactions = function (cb) {
  * @emits exit
  * @throws {string} On failure to match genesis block with database, or when rounds exceptions do not match database
  */
-__private.loadBlockChain = function () {
-	var offset = 0, limit = Number(library.config.loading.loadPerIteration) || 1000;
+__private.loadBlockChain = function() {
+	var offset = 0,
+		limit = Number(library.config.loading.loadPerIteration) || 1000;
 	var verify = Boolean(library.config.loading.verifyOnLoading);
 
-	function load (count) {
+	function load(count) {
 		verify = true;
 		__private.total = count;
 		async.series({
-			removeTables: function (seriesCb) {
-				library.logic.account.removeTables(function (err) {
+			removeTables: function(seriesCb) {
+				library.logic.account.removeTables(function(err) {
 					if (err) {
 						throw err;
-					} else {
+					}
+					else {
 						return setImmediate(seriesCb);
 					}
 				});
 			},
-			createTables: function (seriesCb) {
-				library.logic.account.createTables(function (err) {
+			createTables: function(seriesCb) {
+				library.logic.account.createTables(function(err) {
 					if (err) {
 						throw err;
-					} else {
+					}
+					else {
 						return setImmediate(seriesCb);
 					}
 				});
 			},
-			loadBlocksOffset: function (seriesCb) {
+			loadBlocksOffset: function(seriesCb) {
 				async.until(
-					function () {
+					function() {
 						return count < offset;
-					}, function (cb) {
+					},
+					function(cb) {
 						if (count > 1) {
-							library.logger.info('Rebuilding blockchain, current block height: '  + (offset + 1));
+							library.logger.info('Rebuilding blockchain, current block height: ' + (offset + 1));
 						}
-						modules.blocks.process.loadBlocksOffset(limit, offset, verify, function (err, lastBlock) {
+						modules.blocks.process.loadBlocksOffset(limit, offset, verify, function(err, lastBlock) {
 							if (err) {
 								return setImmediate(cb, err);
 							}
@@ -349,29 +373,31 @@ __private.loadBlockChain = function () {
 
 							return setImmediate(cb);
 						});
-					}, function (err) {
+					},
+					function(err) {
 						return setImmediate(seriesCb, err);
 					}
 				);
 			}
-		}, function (err) {
+		}, function(err) {
 			if (err) {
 				library.logger.error(err);
 				if (err.block) {
 					library.logger.error('Blockchain failed at: ' + err.block.height);
-					modules.blocks.chain.deleteAfterBlock(err.block.id, function (err, res) {
+					modules.blocks.chain.deleteAfterBlock(err.block.id, function(err, res) {
 						library.logger.error('Blockchain clipped');
 						library.bus.message('blockchainReady');
 					});
 				}
-			} else {
+			}
+			else {
 				library.logger.info('Blockchain ready');
 				library.bus.message('blockchainReady');
 			}
 		});
 	}
 
-	function reload (count, message) {
+	function reload(count, message) {
 		if (message) {
 			library.logger.warn(message);
 			library.logger.warn('Recreating memory tables');
@@ -380,7 +406,7 @@ __private.loadBlockChain = function () {
 		return load(count);
 	}
 
-	function checkMemTables (t) {
+	function checkMemTables(t) {
 		var promises = [
 			t.one(sql.countBlocks),
 			t.query(sql.getGenesisBlock),
@@ -392,23 +418,24 @@ __private.loadBlockChain = function () {
 		return t.batch(promises);
 	}
 
-	function matchGenesisBlock (row) {
+	function matchGenesisBlock(row) {
 		if (row) {
 			var matched = (
 				row.id === __private.genesisBlock.block.id &&
 				row.payloadHash.toString('hex') === __private.genesisBlock.block.payloadHash &&
-				row.blockSignature.toString('hex')  === __private.genesisBlock.block.blockSignature
+				row.blockSignature.toString('hex') === __private.genesisBlock.block.blockSignature
 			);
 			if (matched) {
 				library.logger.info('Genesis block matched with database');
-			} else {
+			}
+			else {
 				throw 'Failed to match genesis block with database';
 			}
 		}
 	}
 
 	// TODO: Remove snapshot verification as part of #544
-	function verifySnapshot (count, round) {
+	function verifySnapshot(count, round) {
 		if (library.config.loading.snapshot !== undefined || library.config.loading.snapshot > 0) {
 			library.logger.info('Snapshot mode enabled');
 
@@ -425,17 +452,18 @@ __private.loadBlockChain = function () {
 
 			library.logger.info('Snapshotting to end of round: ' + library.config.loading.snapshot);
 			return true;
-		} else {
+		}
+		else {
 			return false;
 		}
 	}
 
-	library.db.task(checkMemTables).then(function (res) {
-		var countBlocks         = res[0];
-		var getGenesisBlock     = res[1];
-		var countMemAccounts    = res[2];
+	library.db.task(checkMemTables).then(function(res) {
+		var countBlocks = res[0];
+		var getGenesisBlock = res[1];
+		var countMemAccounts = res[2];
 		var validateMemBalances = res[3];
-		var dbRoundsExceptions  = res[4];
+		var dbRoundsExceptions = res[4];
 
 		var count = countBlocks.count;
 		library.logger.info('Blocks ' + count);
@@ -471,8 +499,9 @@ __private.loadBlockChain = function () {
 		var roundsExceptions = Object.keys(exceptions.rounds);
 		if (roundsExceptions.length !== dbRoundsExceptions.length) {
 			throw 'Rounds exceptions count does not match database layer';
-		} else {
-			dbRoundsExceptions.forEach(function (row) {
+		}
+		else {
+			dbRoundsExceptions.forEach(function(row) {
 				var ex = exceptions.rounds[row.round];
 				if (!ex || ex.rewards_factor !== row.rewards_factor || ex.fees_factor !== row.fees_factor || ex.fees_bonus !== Number(row.fees_bonus)) {
 					throw 'Rounds exception values do not match database layer';
@@ -480,7 +509,7 @@ __private.loadBlockChain = function () {
 			});
 		}
 
-		function updateMemAccounts (t) {
+		function updateMemAccounts(t) {
 			var promises = [
 				t.none(sql.updateMemAccounts),
 				t.query(sql.getOrphanedMemAccounts),
@@ -490,10 +519,10 @@ __private.loadBlockChain = function () {
 			return t.batch(promises);
 		}
 
-		library.db.task(updateMemAccounts).then(function (res) {
-			var updateMemAccounts      = res[0];
+		library.db.task(updateMemAccounts).then(function(res) {
+			var updateMemAccounts = res[0];
 			var getOrphanedMemAccounts = res[1];
-			var getDelegates           = res[2];
+			var getDelegates = res[2];
 
 			if (getOrphanedMemAccounts.length > 0) {
 				return reload(count, 'Detected orphaned blocks in mem_accounts');
@@ -503,17 +532,18 @@ __private.loadBlockChain = function () {
 				return reload(count, 'No delegates found');
 			}
 
-			modules.blocks.utils.loadLastBlock(function (err, block) {
+			modules.blocks.utils.loadLastBlock(function(err, block) {
 				if (err) {
 					return reload(count, err || 'Failed to load last block');
-				} else {
+				}
+				else {
 					__private.lastBlock = block;
 					library.logger.info('Blockchain ready');
 					library.bus.message('blockchainReady');
 				}
 			});
 		});
-	}).catch(function (err) {
+	}).catch(function(err) {
 		library.logger.error(err.stack || err);
 		return process.emit('exit');
 	});
@@ -530,27 +560,28 @@ __private.loadBlockChain = function () {
  * @param {function} cb
  * @return {setImmediateCallback} cb, err
  */
-__private.loadBlocksFromNetwork = function (cb) {
+__private.loadBlocksFromNetwork = function(cb) {
 	var errorCount = 0;
 	var loaded = false;
 
 
-	self.getNetwork(function (err, network) {
+	self.getNetwork(function(err, network) {
 		if (err) {
 			return setImmediate(cb, err);
-		} else {
+		}
+		else {
 			async.whilst(
-				function () {
+				function() {
 					return !loaded && errorCount < 5;
 				},
-				function (next) {
+				function(next) {
 					var peer = network.peers[Math.floor(Math.random() * network.peers.length)];
 					var lastBlock = modules.blocks.lastBlock.get();
 
-					function loadBlocks () {
+					function loadBlocks() {
 						__private.blocksToSync = peer.height;
 
-						modules.blocks.process.loadBlocksFromPeer(peer, function (err, lastValidBlock) {
+						modules.blocks.process.loadBlocksFromPeer(peer, function(err, lastValidBlock) {
 							if (err) {
 								library.logger.error(err.toString());
 								library.logger.error('Failed to load blocks from: ' + peer.string);
@@ -562,15 +593,18 @@ __private.loadBlocksFromNetwork = function (cb) {
 						});
 					}
 
-					function getCommonBlock (cb) {
+					function getCommonBlock(cb) {
 						library.logger.info('Looking for common block with: ' + peer.string);
-						modules.blocks.process.getCommonBlock(peer, lastBlock.height, function (err, commonBlock) {
+						modules.blocks.process.getCommonBlock(peer, lastBlock.height, function(err, commonBlock) {
 							if (!commonBlock) {
-								if (err) { library.logger.error(err.toString()); }
+								if (err) {
+									library.logger.error(err.toString());
+								}
 								library.logger.error('Failed to find common block with: ' + peer.string);
 								errorCount += 1;
 								return next();
-							} else {
+							}
+							else {
 								library.logger.info(['Found common block:', commonBlock.id, 'with:', peer.string].join(' '));
 								return setImmediate(cb);
 							}
@@ -579,15 +613,17 @@ __private.loadBlocksFromNetwork = function (cb) {
 
 					if (lastBlock.height === 1) {
 						loadBlocks();
-					} else {
+					}
+					else {
 						getCommonBlock(loadBlocks);
 					}
 				},
-				function (err) {
+				function(err) {
 					if (err) {
 						library.logger.error('Failed to load blocks from network', err);
 						return setImmediate(cb, err);
-					} else {
+					}
+					else {
 						return setImmediate(cb);
 					}
 				}
@@ -612,7 +648,7 @@ __private.loadBlocksFromNetwork = function (cb) {
  * @param {function} cb
  * @todo check err actions
  */
-__private.sync = function (cb) {
+__private.sync = function(cb) {
 	library.logger.info('Starting sync');
 	library.bus.message('syncStarted');
 
@@ -620,29 +656,33 @@ __private.sync = function (cb) {
 	__private.syncTrigger(true);
 
 	async.series({
-		undoUnconfirmedList: function (seriesCb) {
+		undoUnconfirmedList: function(seriesCb) {
 			library.logger.debug('Undoing unconfirmed transactions before sync');
 			return modules.transactions.undoUnconfirmedList(seriesCb);
 		},
-		getPeersBefore: function (seriesCb) {
+		getPeersBefore: function(seriesCb) {
 			library.logger.debug('Establishing broadhash consensus before sync');
-			return modules.transport.getPeers({limit: constants.maxPeers}, seriesCb);
+			return modules.transport.getPeers({
+				limit: constants.maxPeers
+			}, seriesCb);
 		},
-		loadBlocksFromNetwork: function (seriesCb) {
+		loadBlocksFromNetwork: function(seriesCb) {
 			return __private.loadBlocksFromNetwork(seriesCb);
 		},
-		updateSystem: function (seriesCb) {
+		updateSystem: function(seriesCb) {
 			return modules.system.update(seriesCb);
 		},
-		getPeersAfter: function (seriesCb) {
+		getPeersAfter: function(seriesCb) {
 			library.logger.debug('Establishing broadhash consensus after sync');
-			return modules.transport.getPeers({limit: constants.maxPeers}, seriesCb);
+			return modules.transport.getPeers({
+				limit: constants.maxPeers
+			}, seriesCb);
 		},
-		applyUnconfirmedList: function (seriesCb) {
+		applyUnconfirmedList: function(seriesCb) {
 			library.logger.debug('Applying unconfirmed transactions after sync');
 			return modules.transactions.applyUnconfirmedList(seriesCb);
 		}
-	}, function (err) {
+	}, function(err) {
 		__private.isActive = false;
 		__private.syncTrigger(false);
 		__private.blocksToSync = 0;
@@ -668,23 +708,31 @@ __private.sync = function (cb) {
  * @param {array<Peer>} peers
  * @return {Object} {height number, peers array}
  */
-Loader.prototype.findGoodPeers = function (peers) {
+Loader.prototype.findGoodPeers = function(peers) {
 	var lastBlockHeight = modules.blocks.lastBlock.get().height;
-	library.logger.trace('Good peers - received', {count: peers.length});
+	library.logger.trace('Good peers - received', {
+		count: peers.length
+	});
 
-	peers = peers.filter(function (item) {
+	peers = peers.filter(function(item) {
 		// Removing unreachable peers or heights below last block height
 		return item != null && item.height >= lastBlockHeight;
 	});
 
-	library.logger.trace('Good peers - filtered', {count: peers.length});
+	library.logger.trace('Good peers - filtered', {
+		count: peers.length
+	});
 
 	// No peers found
 	if (peers.length === 0) {
-		return {height: 0, peers: []};
-	} else {
+		return {
+			height: 0,
+			peers: []
+		};
+	}
+	else {
 		// Ordering the peers with descending height
-		peers = peers.sort(function (a,b) {
+		peers = peers.sort(function(a, b) {
 			return b.height - a.height;
 		});
 
@@ -707,16 +755,21 @@ Loader.prototype.findGoodPeers = function (peers) {
 		}
 
 		// Performing histogram cut of peers too far from histogram maximum
-		peers = peers.filter(function (item) {
+		peers = peers.filter(function(item) {
 			return item && Math.abs(height - item.height) < aggregation + 1;
-		}).map(function (item) {
+		}).map(function(item) {
 			return library.logic.peers.create(item);
 		});
 
-		library.logger.trace('Good peers - accepted', {count: peers.length});
+		library.logger.trace('Good peers - accepted', {
+			count: peers.length
+		});
 		library.logger.debug('Good peers', peers);
 
-		return {height: height, peers: peers};
+		return {
+			height: height,
+			peers: peers
+		};
 	}
 };
 
@@ -734,11 +787,13 @@ Loader.prototype.findGoodPeers = function (peers) {
  * @param {function} cb
  * @return {setImmediateCallback} err | __private.network (good peers)
  */
-Loader.prototype.getNetwork = function (cb) {
+Loader.prototype.getNetwork = function(cb) {
 	if (__private.network.height > 0 && Math.abs(__private.network.height - modules.blocks.lastBlock.get().height) === 1) {
 		return setImmediate(cb, null, __private.network);
 	}
-	modules.peers.list({normalized: false}, function (err, peers) {
+	modules.peers.list({
+		normalized: false
+	}, function(err, peers) {
 		if (err) {
 			return setImmediate(cb, err);
 		}
@@ -747,7 +802,8 @@ Loader.prototype.getNetwork = function (cb) {
 
 		if (!__private.network.peers.length) {
 			return setImmediate(cb, 'Failed to find enough good peers');
-		} else {
+		}
+		else {
 			return setImmediate(cb, null, __private.network);
 		}
 	});
@@ -757,7 +813,7 @@ Loader.prototype.getNetwork = function (cb) {
  * Checks if private variable syncIntervalId have value.
  * @return {boolean} True if syncIntervalId have value
  */
-Loader.prototype.syncing = function () {
+Loader.prototype.syncing = function() {
 	return !!__private.syncIntervalId;
 };
 
@@ -765,7 +821,7 @@ Loader.prototype.syncing = function () {
  * Checks if `modules` is loaded.
  * @return {boolean} True if `modules` is loaded.
  */
-Loader.prototype.isLoaded = function () {
+Loader.prototype.isLoaded = function() {
 	return !!modules;
 };
 
@@ -780,40 +836,44 @@ Loader.prototype.isLoaded = function () {
  * @implements {__private.initialize}
  * @return {function} calls to __private.syncTimer()
  */
-Loader.prototype.onPeersReady = function () {
-	library.logger.trace('Peers ready', {module: 'loader'});
+Loader.prototype.onPeersReady = function() {
+	library.logger.trace('Peers ready', {
+		module: 'loader'
+	});
 	// Enforce sync early
 	__private.syncTimer();
 
-	setImmediate(function load () {
+	setImmediate(function load() {
 		async.series({
-			loadTransactions: function (seriesCb) {
+			loadTransactions: function(seriesCb) {
 				if (__private.loaded) {
-					async.retry(__private.retries, __private.loadTransactions, function (err) {
+					async.retry(__private.retries, __private.loadTransactions, function(err) {
 						if (err) {
 							library.logger.log('Unconfirmed transactions loader', err);
 						}
 
 						return setImmediate(seriesCb);
 					});
-				} else {
+				}
+				else {
 					return setImmediate(seriesCb);
 				}
 			},
-			loadSignatures: function (seriesCb) {
+			loadSignatures: function(seriesCb) {
 				if (__private.loaded) {
-					async.retry(__private.retries, __private.loadSignatures, function (err) {
+					async.retry(__private.retries, __private.loadSignatures, function(err) {
 						if (err) {
 							library.logger.log('Signatures loader', err);
 						}
 
 						return setImmediate(seriesCb);
 					});
-				} else {
+				}
+				else {
 					return setImmediate(seriesCb);
 				}
 			}
-		}, function (err) {
+		}, function(err) {
 			library.logger.trace('Transactions and signatures pulled');
 
 			if (err) {
@@ -828,7 +888,7 @@ Loader.prototype.onPeersReady = function () {
  * Calls __private.loadBlockChain
  * @param {modules} scope
  */
-Loader.prototype.onBind = function (scope) {
+Loader.prototype.onBind = function(scope) {
 	modules = {
 		transactions: scope.transactions,
 		blocks: scope.blocks,
@@ -844,7 +904,7 @@ Loader.prototype.onBind = function (scope) {
 /**
  * Sets private variable loaded to true.
  */
-Loader.prototype.onBlockchainReady = function () {
+Loader.prototype.onBlockchainReady = function() {
 	__private.loaded = true;
 };
 
@@ -853,7 +913,7 @@ Loader.prototype.onBlockchainReady = function () {
  * @param {function} cb
  * @return {setImmediateCallback} cb
  */
-Loader.prototype.cleanup = function (cb) {
+Loader.prototype.cleanup = function(cb) {
 	__private.loaded = false;
 	return setImmediate(cb);
 };
@@ -864,7 +924,7 @@ Loader.prototype.cleanup = function (cb) {
  * @see {@link http://apidocjs.com/}
  */
 Loader.prototype.internal = {
-	statusPing: function () {
+	statusPing: function() {
 		return modules.blocks.lastBlock.isFresh();
 	}
 };
@@ -875,7 +935,7 @@ Loader.prototype.internal = {
  * @see {@link http://apidocjs.com/}
  */
 Loader.prototype.shared = {
-	status: function (req, cb) {
+	status: function(req, cb) {
 		return setImmediate(cb, null, {
 			loaded: __private.loaded,
 			now: __private.lastBlock.height,
@@ -883,7 +943,7 @@ Loader.prototype.shared = {
 		});
 	},
 
-	sync: function (req, cb) {
+	sync: function(req, cb) {
 		return setImmediate(cb, null, {
 			syncing: self.syncing(),
 			blocks: __private.blocksToSync,
