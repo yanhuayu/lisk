@@ -14,6 +14,7 @@ PostgreSQL：http://www.cnblogs.com/walk-the-Line/p/5407463.html
 
 
 终端代理：http://www.jianshu.com/p/720a461929ce
+		https://www.52os.net/articles/proxychains-ng-redirect-tcp-to-proxy.html
 
 
 \c lisk_test;
