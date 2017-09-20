@@ -50,7 +50,7 @@ var versionBuild = fs.readFileSync(path.join(__dirname, 'build'), 'utf8');
 var lastCommit = '';
 
 if (typeof gc !== 'undefined') {
-	setInterval(function () {
+	setInterval(function() {
 		gc();
 	}, 60000);
 }
@@ -81,14 +81,15 @@ if (program.address) {
 
 if (program.peers) {
 	if (typeof program.peers === 'string') {
-		appConfig.peers.list = program.peers.split(',').map(function (peer) {
+		appConfig.peers.list = program.peers.split(',').map(function(peer) {
 			peer = peer.split(':');
 			return {
 				ip: peer.shift(),
 				port: peer.shift() || appConfig.port
 			};
 		});
-	} else {
+	}
+	else {
 		appConfig.peers.list = [];
 	}
 }
@@ -141,17 +142,39 @@ var config = {
 		cache: './modules/cache.js'
 	},
 	api: {
-		accounts: { http: './api/http/accounts.js' },
-		blocks: { http: './api/http/blocks.js' },
-		dapps: { http: './api/http/dapps.js' },
-		delegates: { http: './api/http/delegates.js' },
-		loader: { http: './api/http/loader.js' },
-		multisignatures: { http: './api/http/multisignatures.js' },
-		peers: { http: './api/http/peers.js' },
-		server: { http: './api/http/server.js' },
-		signatures: { http: './api/http/signatures.js' },
-		transactions: { http: './api/http/transactions.js' },
-		transport: { http: './api/http/transport.js' }
+		accounts: {
+			http: './api/http/accounts.js'
+		},
+		blocks: {
+			http: './api/http/blocks.js'
+		},
+		dapps: {
+			http: './api/http/dapps.js'
+		},
+		delegates: {
+			http: './api/http/delegates.js'
+		},
+		loader: {
+			http: './api/http/loader.js'
+		},
+		multisignatures: {
+			http: './api/http/multisignatures.js'
+		},
+		peers: {
+			http: './api/http/peers.js'
+		},
+		server: {
+			http: './api/http/server.js'
+		},
+		signatures: {
+			http: './api/http/signatures.js'
+		},
+		transactions: {
+			http: './api/http/transactions.js'
+		},
+		transport: {
+			http: './api/http/transport.js'
+		}
 	}
 };
 
@@ -160,13 +183,17 @@ var config = {
  * The Object is initialized here and pass to others as parameter.
  * @property {object} - Logger instance.
  */
-var logger = new Logger({ echo: appConfig.consoleLogLevel, errorLevel: appConfig.fileLogLevel, 
-	filename: appConfig.logFileName });
+var logger = new Logger({
+	echo: appConfig.consoleLogLevel,
+	errorLevel: appConfig.fileLogLevel,
+	filename: appConfig.logFileName
+});
 
 // Trying to get last git commit
 try {
 	lastCommit = git.getLastCommit();
-} catch (err) {
+}
+catch (err) {
 	logger.debug('Cannot get last git commit', err.message);
 }
 
@@ -176,13 +203,16 @@ try {
  */
 var d = require('domain').create();
 
-d.on('error', function (err) {
-	logger.fatal('Domain master', { message: err.message, stack: err.stack });
+d.on('error', function(err) {
+	logger.fatal('Domain master', {
+		message: err.message,
+		stack: err.stack
+	});
 	process.exit(0);
 });
 
 // runs domain
-d.run(function () {
+d.run(function() {
 	var modules = [];
 	async.auto({
 		/**
@@ -192,10 +222,11 @@ d.run(function () {
 		 * @param {nodeStyleCallback} cb - Callback function with the mutated `appConfig`.
 		 * @throws {Error} If failed to assign nethash from genesis block.
 		 */
-		config: function (cb) {
+		config: function(cb) {
 			try {
 				appConfig.nethash = Buffer.from(genesisblock.payloadHash, 'hex').toString('hex');
-			} catch (e) {
+			}
+			catch (e) {
 				logger.error('Failed to assign nethash from genesis block');
 				throw Error(e);
 			}
@@ -216,16 +247,17 @@ d.run(function () {
 				fs.writeFileSync('./config.json', JSON.stringify(appConfig, null, 4));
 
 				cb(null, appConfig);
-			} else {
+			}
+			else {
 				cb(null, appConfig);
 			}
 		},
 
-		logger: function (cb) {
+		logger: function(cb) {
 			cb(null, logger);
 		},
 
-		build: function (cb) {
+		build: function(cb) {
 			cb(null, versionBuild);
 		},
 
@@ -234,21 +266,21 @@ d.run(function () {
 		 * @method lastCommit
 		 * @param {nodeStyleCallback} cb - Callback function with Hash of last git commit.
 		 */
-		lastCommit: function (cb) {
+		lastCommit: function(cb) {
 			cb(null, lastCommit);
 		},
 
-		genesisblock: function (cb) {
+		genesisblock: function(cb) {
 			cb(null, {
 				block: genesisblock
 			});
 		},
 
-		public: function (cb) {
+		public: function(cb) {
 			cb(null, path.join(__dirname, 'public'));
 		},
 
-		schema: function (cb) {
+		schema: function(cb) {
 			cb(null, new z_schema());
 		},
 
@@ -257,10 +289,10 @@ d.run(function () {
 		 * @method network
 		 * @param {object} scope - The results from current execution,
 		 * at leats will contain the required elements.
-		 * @param {nodeStyleCallback} cb - Callback function with created Object: 
+		 * @param {nodeStyleCallback} cb - Callback function with created Object:
 		 * `{express, app, server, io, https, https_io}`.
 		 */
-		network: ['config', function (scope, cb) {
+		network: ['config', function(scope, cb) {
 			var express = require('express');
 			var compression = require('compression');
 			var cors = require('cors');
@@ -275,7 +307,9 @@ d.run(function () {
 
 			require('./helpers/request-limiter')(app, appConfig);
 
-			app.use(compression({ level: 9 }));
+			app.use(compression({
+				level: 9
+			}));
 			app.use(cors());
 			app.options('*', cors());
 
@@ -307,27 +341,27 @@ d.run(function () {
 			});
 		}],
 
-		dbSequence: ['logger', function (scope, cb) {
+		dbSequence: ['logger', function(scope, cb) {
 			var sequence = new Sequence({
-				onWarning: function (current, limit) {
+				onWarning: function(current, limit) {
 					scope.logger.warn('DB queue', current);
 				}
 			});
 			cb(null, sequence);
 		}],
 
-		sequence: ['logger', function (scope, cb) {
+		sequence: ['logger', function(scope, cb) {
 			var sequence = new Sequence({
-				onWarning: function (current, limit) {
+				onWarning: function(current, limit) {
 					scope.logger.warn('Main queue', current);
 				}
 			});
 			cb(null, sequence);
 		}],
 
-		balancesSequence: ['logger', function (scope, cb) {
+		balancesSequence: ['logger', function(scope, cb) {
 			var sequence = new Sequence({
-				onWarning: function (current, limit) {
+				onWarning: function(current, limit) {
 					scope.logger.warn('Balance queue', current);
 				}
 			});
@@ -338,11 +372,11 @@ d.run(function () {
 		 * Once config, public, genesisblock, logger, build and network are completed,
 		 * adds configuration to `network.app`.
 		 * @method connect
-		 * @param {object} scope - The results from current execution, 
+		 * @param {object} scope - The results from current execution,
 		 * at leats will contain the required elements.
 		 * @param {function} cb - Callback function.
 		 */
-		connect: ['config', 'public', 'genesisblock', 'logger', 'build', 'network', function (scope, cb) {
+		connect: ['config', 'public', 'genesisblock', 'logger', 'build', 'network', function(scope, cb) {
 			var path = require('path');
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
@@ -355,15 +389,23 @@ d.run(function () {
 			scope.network.app.set('view engine', 'ejs');
 			scope.network.app.set('views', path.join(__dirname, 'public'));
 			scope.network.app.use(scope.network.express.static(path.join(__dirname, 'public')));
-			scope.network.app.use(bodyParser.raw({limit: '2mb'}));
-			scope.network.app.use(bodyParser.urlencoded({extended: true, limit: '2mb', parameterLimit: 5000}));
-			scope.network.app.use(bodyParser.json({limit: '2mb'}));
+			scope.network.app.use(bodyParser.raw({
+				limit: '2mb'
+			}));
+			scope.network.app.use(bodyParser.urlencoded({
+				extended: true,
+				limit: '2mb',
+				parameterLimit: 5000
+			}));
+			scope.network.app.use(bodyParser.json({
+				limit: '2mb'
+			}));
 			scope.network.app.use(methodOverride());
 
 			var ignore = ['id', 'name', 'lastBlockId', 'blockId', 'transactionId', 'address', 'recipientId', 'senderId', 'previousBlock'];
 
 			scope.network.app.use(queryParser({
-				parser: function (value, radix, name) {
+				parser: function(value, radix, name) {
 					if (ignore.indexOf(name) >= 0) {
 						return value;
 					}
@@ -404,26 +446,26 @@ d.run(function () {
 			cb();
 		}],
 
-		ed: function (cb) {
+		ed: function(cb) {
 			cb(null, require('./helpers/ed.js'));
 		},
 
-		bus: ['ed', function (scope, cb) {
+		bus: ['ed', function(scope, cb) {
 			var changeCase = require('change-case');
-			var bus = function () {
-				this.message = function () {
+			var bus = function() {
+				this.message = function() {
 					var args = [];
 					Array.prototype.push.apply(args, arguments);
 					var topic = args.shift();
 					var eventName = 'on' + changeCase.pascalCase(topic);
 
 					// executes the each module onBind function
-					modules.forEach(function (module) {
+					modules.forEach(function(module) {
 						if (typeof(module[eventName]) === 'function') {
 							module[eventName].apply(module[eventName], args);
 						}
 						if (module.submodules) {
-							async.each(module.submodules, function (submodule) {
+							async.each(module.submodules, function(submodule) {
 								if (submodule && typeof(submodule[eventName]) === 'function') {
 									submodule[eventName].apply(submodule[eventName], args);
 								}
@@ -434,7 +476,7 @@ d.run(function () {
 			};
 			cb(null, new bus());
 		}],
-		db: function (cb) {
+		db: function(cb) {
 			var db = require('./helpers/database.js');
 			db.connect(config.db, logger, cb);
 		},
@@ -442,7 +484,7 @@ d.run(function () {
 		 * It tries to connect with redis server based on config. provided in config.json file
 		 * @param {function} cb
 		 */
-		cache: function (cb) {
+		cache: function(cb) {
 			var cache = require('./helpers/cache.js');
 			cache.connect(config.cacheEnabled, config.cache, logger, cb);
 		},
@@ -450,47 +492,47 @@ d.run(function () {
 		 * Once db, bus, schema and genesisblock are completed,
 		 * loads transaction, block, account and peers from logic folder.
 		 * @method logic
-		 * @param {object} scope - The results from current execution, 
+		 * @param {object} scope - The results from current execution,
 		 * at leats will contain the required elements.
 		 * @param {function} cb - Callback function.
-		 */	
-		logic: ['db', 'bus', 'schema', 'genesisblock', function (scope, cb) {
+		 */
+		logic: ['db', 'bus', 'schema', 'genesisblock', function(scope, cb) {
 			var Transaction = require('./logic/transaction.js');
 			var Block = require('./logic/block.js');
 			var Account = require('./logic/account.js');
 			var Peers = require('./logic/peers.js');
 
 			async.auto({
-				bus: function (cb) {
+				bus: function(cb) {
 					cb(null, scope.bus);
 				},
-				db: function (cb) {
+				db: function(cb) {
 					cb(null, scope.db);
 				},
-				ed: function (cb) {
+				ed: function(cb) {
 					cb(null, scope.ed);
 				},
-				logger: function (cb) {
+				logger: function(cb) {
 					cb(null, logger);
 				},
-				schema: function (cb) {
+				schema: function(cb) {
 					cb(null, scope.schema);
 				},
-				genesisblock: function (cb) {
+				genesisblock: function(cb) {
 					cb(null, {
 						block: genesisblock
 					});
 				},
-				account: ['db', 'bus', 'ed', 'schema', 'genesisblock', 'logger', function (scope, cb) {
+				account: ['db', 'bus', 'ed', 'schema', 'genesisblock', 'logger', function(scope, cb) {
 					new Account(scope.db, scope.schema, scope.logger, cb);
 				}],
-				transaction: ['db', 'bus', 'ed', 'schema', 'genesisblock', 'account', 'logger', function (scope, cb) {
+				transaction: ['db', 'bus', 'ed', 'schema', 'genesisblock', 'account', 'logger', function(scope, cb) {
 					new Transaction(scope.db, scope.ed, scope.schema, scope.genesisblock, scope.account, scope.logger, cb);
 				}],
-				block: ['db', 'bus', 'ed', 'schema', 'genesisblock', 'account', 'transaction', function (scope, cb) {
+				block: ['db', 'bus', 'ed', 'schema', 'genesisblock', 'account', 'transaction', function(scope, cb) {
 					new Block(scope.ed, scope.schema, scope.transaction, cb);
 				}],
-				peers: ['logger', function (scope, cb) {
+				peers: ['logger', function(scope, cb) {
 					new Peers(scope.logger, cb);
 				}]
 			}, cb);
@@ -504,19 +546,22 @@ d.run(function () {
 		 * at leats will contain the required elements.
 		 * @param {nodeStyleCallback} cb - Callback function with resulted load.
 		 */
-		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbSequence', 'balancesSequence', 'db', 'logic', 'cache', function (scope, cb) {
+		modules: ['network', 'connect', 'config', 'logger', 'bus', 'sequence', 'dbSequence', 'balancesSequence', 'db', 'logic', 'cache', function(scope, cb) {
 
 			var tasks = {};
 
-			Object.keys(config.modules).forEach(function (name) {
-				tasks[name] = function (cb) {
+			Object.keys(config.modules).forEach(function(name) {
+				tasks[name] = function(cb) {
 					var d = require('domain').create();
 
-					d.on('error', function (err) {
-						scope.logger.fatal('Domain ' + name, {message: err.message, stack: err.stack});
+					d.on('error', function(err) {
+						scope.logger.fatal('Domain ' + name, {
+							message: err.message,
+							stack: err.stack
+						});
 					});
 
-					d.run(function () {
+					d.run(function() {
 						logger.debug('Loading module', name);
 						var Klass = require(config.modules[name]);
 						var obj = new Klass(cb, scope);
@@ -525,7 +570,7 @@ d.run(function () {
 				};
 			});
 
-			async.parallel(tasks, function (err, results) {
+			async.parallel(tasks, function(err, results) {
 				cb(err, results);
 			});
 		}],
@@ -534,18 +579,19 @@ d.run(function () {
 		 * Loads api from `api` folder using `config.api`, once modules, logger and
 		 * network are completed.
 		 * @method api
-		 * @param {object} scope - The results from current execution, 
+		 * @param {object} scope - The results from current execution,
 		 * at leats will contain the required elements.
 		 * @param {function} cb - Callback function.
-		 */	
-		api: ['modules', 'logger', 'network', function (scope, cb) {
-			Object.keys(config.api).forEach(function (moduleName) {
-				Object.keys(config.api[moduleName]).forEach(function (protocol) {
+		 */
+		api: ['modules', 'logger', 'network', function(scope, cb) {
+			Object.keys(config.api).forEach(function(moduleName) {
+				Object.keys(config.api[moduleName]).forEach(function(protocol) {
 					var apiEndpointPath = config.api[moduleName][protocol];
 					try {
 						var ApiEndpoint = require(apiEndpointPath);
 						new ApiEndpoint(scope.modules[moduleName], scope.network.app, scope.logger, scope.modules.cache);
-					} catch (e) {
+					}
+					catch (e) {
 						scope.logger.error('Unable to load API endpoint for ' + moduleName + ' of ' + protocol, e);
 					}
 				});
@@ -555,7 +601,7 @@ d.run(function () {
 			cb();
 		}],
 
-		ready: ['modules', 'bus', 'logic', function (scope, cb) {
+		ready: ['modules', 'bus', 'logic', function(scope, cb) {
 			scope.bus.message('bind', scope.modules);
 			scope.logic.transaction.bindModules(scope.modules);
 			scope.logic.peers.bindModules(scope.modules);
@@ -566,33 +612,36 @@ d.run(function () {
 		 * Once 'ready' is completed, binds and listens for connections on the
 		 * specified host and port for `scope.network.server`.
 		 * @method listen
-		 * @param {object} scope - The results from current execution, 
+		 * @param {object} scope - The results from current execution,
 		 * at leats will contain the required elements.
 		 * @param {nodeStyleCallback} cb - Callback function with `scope.network`.
 		 */
-		listen: ['ready', function (scope, cb) {
-			scope.network.server.listen(scope.config.port, scope.config.address, function (err) {
+		listen: ['ready', function(scope, cb) {
+			scope.network.server.listen(scope.config.port, scope.config.address, function(err) {
 				scope.logger.info('Lisk started: ' + scope.config.address + ':' + scope.config.port);
 
 				if (!err) {
 					if (scope.config.ssl.enabled) {
-						scope.network.https.listen(scope.config.ssl.options.port, scope.config.ssl.options.address, function (err) {
+						scope.network.https.listen(scope.config.ssl.options.port, scope.config.ssl.options.address, function(err) {
 							scope.logger.info('Lisk https started: ' + scope.config.ssl.options.address + ':' + scope.config.ssl.options.port);
 
 							cb(err, scope.network);
 						});
-					} else {
+					}
+					else {
 						cb(null, scope.network);
 					}
-				} else {
+				}
+				else {
 					cb(err, scope.network);
 				}
 			});
 		}]
-	}, function (err, scope) {
+	}, function(err, scope) {
 		if (err) {
 			logger.fatal(err);
-		} else {
+		}
+		else {
 			/**
 			 * Handles app instance (acts as global variable, passed as parameter).
 			 * @global
@@ -630,18 +679,20 @@ d.run(function () {
 			 * Receives a 'cleanup' signal and cleans all modules.
 			 * @listens cleanup
 			 */
-			process.once('cleanup', function () {
+			process.once('cleanup', function() {
 				scope.logger.info('Cleaning up...');
-				async.eachSeries(modules, function (module, cb) {
+				async.eachSeries(modules, function(module, cb) {
 					if (typeof(module.cleanup) === 'function') {
 						module.cleanup(cb);
-					} else {
+					}
+					else {
 						setImmediate(cb);
 					}
-				}, function (err) {
+				}, function(err) {
 					if (err) {
 						scope.logger.error(err);
-					} else {
+					}
+					else {
 						scope.logger.info('Cleaned up successfully');
 					}
 					process.exit(1);
@@ -656,7 +707,7 @@ d.run(function () {
 			 * Receives a 'SIGTERM' signal and emits a cleanup.
 			 * @listens SIGTERM
 			 */
-			process.once('SIGTERM', function () {
+			process.once('SIGTERM', function() {
 				/**
 				 * emits cleanup once 'SIGTERM'.
 				 * @emits cleanup
@@ -672,7 +723,7 @@ d.run(function () {
 			 * Receives an 'exit' signal and emits a cleanup.
 			 * @listens exit
 			 */
-			process.once('exit', function () {
+			process.once('exit', function() {
 				/**
 				 * emits cleanup once 'exit'.
 				 * @emits cleanup
@@ -688,7 +739,7 @@ d.run(function () {
 			 * Receives a 'SIGINT' signal and emits a cleanup.
 			 * @listens SIGINT
 			 */
-			process.once('SIGINT', function () {
+			process.once('SIGINT', function() {
 				/**
 				 * emits cleanup once 'SIGINT'.
 				 * @emits cleanup
@@ -707,9 +758,12 @@ d.run(function () {
  * Receives a 'uncaughtException' signal and emits a cleanup.
  * @listens uncaughtException
  */
-process.on('uncaughtException', function (err) {
+process.on('uncaughtException', function(err) {
 	// Handle error safely
-	logger.fatal('System error', { message: err.message, stack: err.stack });
+	logger.fatal('System error', {
+		message: err.message,
+		stack: err.stack
+	});
 	/**
 	 * emits cleanup once 'uncaughtException'.
 	 * @emits cleanup

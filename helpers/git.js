@@ -1,9 +1,9 @@
 'use strict';
 /*
-* Helper module for parsing git commit information
-*
-* @class git.js
-*/
+ * Helper module for parsing git commit information
+ *
+ * @class git.js
+ */
 
 var childProcess = require('child_process');
 
@@ -14,13 +14,14 @@ var childProcess = require('child_process');
  * @return {String} Hash of last git commit
  * @throws {Error} Throws error if cannot get last git commit
  */
-function getLastCommit () {
+function getLastCommit() {
 	var spawn = childProcess.spawnSync('git', ['rev-parse', 'HEAD']);
 	var err = spawn.stderr.toString().trim();
 
 	if (err) {
 		throw new Error(err);
-	} else {
+	}
+	else {
 		return spawn.stdout.toString().trim();
 	}
 }
