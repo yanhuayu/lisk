@@ -195,8 +195,8 @@ __private.loadSignatures = function(cb) {
 						modules.multisignatures.processSignature({
 							signature: s,
 							transaction: signature.transaction
-						}, function(err) {
-							return setImmediate(eachSeriesCb);
+						}, function (err) {
+							return setImmediate(eachSeriesCb, err);
 						});
 					}, eachSeriesCb);
 				}, cb);
@@ -261,17 +261,11 @@ __private.loadTransactions = function(cb) {
 
 				try {
 					transaction = library.logic.transaction.objectNormalize(transaction);
-				}
-				catch (e) {
-					library.logger.debug('Transaction normalization failed', {
-						id: id,
-						err: e.toString(),
-						module: 'loader',
-						tx: transaction
-					});
+				} catch (e) {
+					library.logger.debug('Transaction normalization failed', {id: id, err: e.toString(), module: 'loader', transaction: transaction});
 
 					library.logger.warn(['Transaction', id, 'is not valid, peer removed'].join(' '), peer.string);
-					modules.peers.remove(peer.ip, peer.port);
+					modules.peers.remove(peer.ip, peer.wsPort);
 
 					return setImmediate(eachSeriesCb, e);
 				}
@@ -825,6 +819,14 @@ Loader.prototype.isLoaded = function() {
 	return !!modules;
 };
 
+/**
+ * Checks private variable loaded.
+ * @return {boolean} False if not loaded
+ */
+Loader.prototype.loaded = function () {
+	return !!__private.loaded;
+};
+
 // Events
 /**
  * Pulls Transactions and signatures.
@@ -916,42 +918,6 @@ Loader.prototype.onBlockchainReady = function() {
 Loader.prototype.cleanup = function(cb) {
 	__private.loaded = false;
 	return setImmediate(cb);
-};
-
-// Internal API
-/**
- * @todo implement API comments with apidoc.
- * @see {@link http://apidocjs.com/}
- */
-Loader.prototype.internal = {
-	statusPing: function() {
-		return modules.blocks.lastBlock.isFresh();
-	}
-};
-
-// Shared API
-/**
- * @todo implement API comments with apidoc.
- * @see {@link http://apidocjs.com/}
- */
-Loader.prototype.shared = {
-	status: function(req, cb) {
-		return setImmediate(cb, null, {
-			loaded: __private.loaded,
-			now: __private.lastBlock.height,
-			blocksCount: __private.total
-		});
-	},
-
-	sync: function(req, cb) {
-		return setImmediate(cb, null, {
-			syncing: self.syncing(),
-			blocks: __private.blocksToSync,
-			height: modules.blocks.lastBlock.get().height,
-			broadhash: modules.system.getBroadhash(),
-			consensus: modules.peers.getConsensus()
-		});
-	}
 };
 
 // Export

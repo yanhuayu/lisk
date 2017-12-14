@@ -1,23 +1,24 @@
 'use strict';
 
-var node = require('./../../node.js'); 
 var chai = require('chai');
 var expect = require('chai').expect;
 var async = require('async');
-var sinon = require('sinon');
-var modulesLoader = require('../../common/initModule').modulesLoader;
-var Cache = require('../../../modules/cache.js');
+var lisk = require('lisk-js');
+
+var test = require('../../test');
+var accountFixtures = require('../../fixtures/accounts');
+
+var modulesLoader = require('../../common/modulesLoader');
+var randomUtil = require('../../common/utils/random');
+
+var Cache = require('../../../modules/cache');
 
 describe('cache', function () {
 
 	var cache;
 
 	before(function (done) {
-		node.config.cacheEnabled = true;
-		done();
-	});
-
-	before(function (done) {
+		test.config.cacheEnabled = true;
 		modulesLoader.initCache(function (err, __cache) {
 			cache = __cache;
 			expect(err).to.not.exist;
@@ -27,16 +28,16 @@ describe('cache', function () {
 		});
 	});
 
-	after(function (done) {
-		cache.quit(done);
-	});
-
 	afterEach(function (done) {
 		cache.flushDb(function (err, status) {
 			expect(err).to.not.exist;
 			expect(status).to.equal('OK');
 			done(err, status);
 		});
+	});
+
+	after(function (done) {
+		cache.quit(done);
 	});
 
 	describe('setJsonForKey', function () {
@@ -173,7 +174,7 @@ describe('cache', function () {
 		});
 
 	});
-	
+
 	describe('onNewBlock', function () {
 
 		it('should remove all keys matching pattern /api/transactions', function (done) {
@@ -312,19 +313,18 @@ describe('cache', function () {
 				});
 			});
 		});
-
 	});
 
 	describe('onTransactionsSaved', function (done) {
 
-		it('shouldnt remove keys with pattern /api/delegate if there is no type 2 trs', function (done) {
+		it('shouldnt remove keys with pattern /api/delegate if there is no type 2 transaction', function (done) {
 			var key = '/api/delegates?123';
 			var value = {testObject: 'testValue'};
 
 			cache.setJsonForKey(key, value, function (err, status) {
 				expect(err).to.not.exist;
 				expect(status).to.equal('OK');
-				var transaction = node.lisk.transaction.createTransaction('1L', 1, node.gAccount.password, node.gAccount.secondPassword);
+				var transaction = lisk.transaction.createTransaction('1L', 1, accountFixtures.genesis.password, accountFixtures.genesis.secondPassword);
 
 				cache.onTransactionsSaved([transaction], function (err) {
 					cache.getJsonForKey(key, function (err, res) {
@@ -336,14 +336,14 @@ describe('cache', function () {
 			});
 		});
 
-		it('should remove keys that match pattern /api/delegate on type 2 trs', function (done) {
+		it('should remove keys that match pattern /api/delegate on type 2 transaction', function (done) {
 			var key = '/api/delegates?123';
 			var value = {testObject: 'testValue'};
 
 			cache.setJsonForKey(key, value, function (err, status) {
 				expect(err).to.not.exist;
 				expect(status).to.equal('OK');
-				var transaction = node.lisk.delegate.createDelegate(node.randomPassword(), node.randomDelegateName().toLowerCase());
+				var transaction = lisk.delegate.createDelegate(randomUtil.password(), randomUtil.delegateName().toLowerCase());
 
 				cache.onTransactionsSaved([transaction], function (err) {
 					cache.getJsonForKey(key, function (err, res) {
@@ -362,7 +362,7 @@ describe('cache', function () {
 			cache.setJsonForKey(key, value, function (err, status) {
 				expect(err).to.not.exist;
 				expect(status).to.equal('OK');
-				var transaction = node.lisk.delegate.createDelegate(node.randomPassword(), node.randomDelegateName().toLowerCase());
+				var transaction = lisk.delegate.createDelegate(randomUtil.password(), randomUtil.delegateName().toLowerCase());
 
 				cache.onSyncStarted();
 				cache.onTransactionsSaved([transaction], function (err) {

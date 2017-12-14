@@ -12,6 +12,13 @@ def report(){
 			]
 		]
 	])
+	if ( currentBuild.result == 'FAILURE' ) {
+		def pr_branch = ''
+		if (env.CHANGE_BRANCH != null) {
+			pr_branch = " (${env.CHANGE_BRANCH})"
+		}
+		slackSend color: 'danger', message: "Build #${env.BUILD_NUMBER} of <${env.BUILD_URL}|${env.JOB_NAME}>${pr_branch} failed (<${env.BUILD_URL}/console|console>, <${env.BUILD_URL}/changes|changes>)", channel: '#lisk-core-jenkins'
+	}
 }
 
 def statusFail() {
@@ -37,8 +44,9 @@ node('node-06'){
 				sh '''#!/bin/bash
 					# Cycle postgres, install deps and prepare config
 					sudo service postgresql restart
+					rsync -axl -e "ssh -oUser=jenkins" master-01:/var/lib/jenkins/lisk/node_modules/ "$WORKSPACE/node_modules/"
 					npm install
-					cp test/config.json test/genesisBlock.json .
+					cp test/data/config.json test/data/genesisBlock.json .
 				'''
 			} catch (err) {
 				statusFail()
@@ -49,7 +57,11 @@ node('node-06'){
 			try {
 				sh '''#!/bin/bash
 					cd "$(echo $WORKSPACE | cut -f 1 -d '@')"
-					npm run test-integration > >(tee integrationTests.logs) 2> >(tee integrationTests.logs >&2)
+					if [ params.JENKINS_PROFILE == 'jenkins-extensive' ]; then
+						npm run test-integration-extensive |& tee integrationTests.logs
+					else
+						npm run test-integration |& tee integrationTests.logs
+					fi
 				'''
 			} catch (err) {
 				statusFail()

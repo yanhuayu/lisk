@@ -5,7 +5,12 @@ module.exports = {
 		id: 'appCon',
 		type: 'object',
 		properties: {
-			port: {
+			wsPort: {
+				type: 'integer',
+				minimum: 1,
+				maximum: 65535
+			},
+			httpPort: {
 				type: 'integer',
 				minimum: 1,
 				maximum: 65535
@@ -81,7 +86,7 @@ module.exports = {
 				properties: {
 					host: {
 						type: 'string',
-						format: 'ip',
+						format: 'ipOrFQDN',
 					},
 					port: {
 						type: 'integer',
@@ -164,29 +169,11 @@ module.exports = {
 					},
 					options: {
 						properties: {
-							limits: {
-								type: 'object',
-								properties: {
-									max: {
-										type: 'integer'
-									},
-									delayMs: {
-										type: 'integer'
-									},
-									delayAfter: {
-										type: 'integer'
-									},
-									windowMs: {
-										type: 'integer'
-									}
-								},
-								required: ['max', 'delayMs', 'delayAfter', 'windowMs']
-							},
 							timeout: {
 								type: 'integer'
 							}
 						},
-						required: ['limits', 'timeout']
+						required: ['timeout']
 					}
 				},
 				required: ['enabled', 'list', 'access', 'options']
@@ -302,6 +289,6 @@ module.exports = {
 				format: 'hex'
 			}
 		},
-		required: ['port', 'address', 'version', 'minVersion', 'fileLogLevel', 'logFileName', 'consoleLogLevel', 'trustProxy', 'topAccounts', 'db', 'api', 'peers', 'broadcasts', 'transactions', 'forging', 'loading', 'ssl', 'nethash', 'cacheEnabled', 'redis']
+		required: ['wsPort', 'httpPort',  'address', 'version', 'minVersion', 'fileLogLevel', 'logFileName', 'consoleLogLevel', 'trustProxy', 'topAccounts', 'db', 'api', 'peers', 'broadcasts', 'transactions', 'forging', 'loading', 'ssl', 'nethash', 'cacheEnabled', 'redis']
 	}
 };

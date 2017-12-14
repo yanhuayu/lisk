@@ -85,6 +85,15 @@ Node.js (<https://nodejs.org/>) -- Node.js serves as the underlying engine for c
 
     `npm install -g bower grunt-cli pm2`
 
+
+**Special note about NPM 5**
+
+Due to an issue with NPM 5.4.x and higher, node-sodium cannot be built. Therefore it is recommended to fixate the local NPM version at `v5.3.x`
+
+- All Systems - This may require sudo depending on your environment:
+
+  `npm install -g npm@5.3.0`
+
 ### Install PostgreSQL (version 9.6.2):
 
 **NOTE:** Database user requires privileges to `CREATE EXTENSION pgcrypto`.
@@ -130,7 +139,7 @@ Node.js (<https://nodejs.org/>) -- Node.js serves as the underlying engine for c
 
 #### Change The Lisk Configuration
 
-Update the redis port configuration in both config.json and test/config.json. Note that this is the easiest option, however, be mindfull of reverting the changes should you make a pull request.
+Update the redis port configuration in both config.json and test/data/config.json. Note that this is the easiest option, however, be mindfull of reverting the changes should you make a pull request.
 
 #### Change The Redis Launch configuration
 
@@ -190,7 +199,7 @@ Before running any tests, please ensure Lisk is configured to run on the same te
 Replace **config.json** and **genesisBlock.json** with the corresponding files under the **test** directory
 
 ```
-cp test/config.json test/genesisBlock.json .
+cp test/data/config.json test/data/genesisBlock.json .
 ```
 
 **NOTE:** If the node was started with a different genesis block previous, trauncate the database before running tests.

@@ -4,10 +4,10 @@ var redis = require('redis');
 
 /**
  * Connects with redis server using the config provided via parameters
- * @param {Boolean} cacheEnabled
+ * @param {boolean} cacheEnabled
  * @param {Object} config - Redis configuration
  * @param {Object} logger
- * @param {Function} cb
+ * @param {function} cb
  */
 module.exports.connect = function (cacheEnabled, config, logger, cb) {
 	var isRedisLoaded = false;
@@ -33,10 +33,11 @@ module.exports.connect = function (cacheEnabled, config, logger, cb) {
 
 	client.on('error', function (err) {
 		logger.error('Redis:', err);
-		// Only throw an error if cache was enabled in config but were unable to load it properly
+		// Returns redis client so application can continue to try to connect with the redis server, 
+		// and modules/cache can have client reference once it's connected
 		if (!isRedisLoaded) {
 			isRedisLoaded = true;
-			return cb(null, { cacheEnabled: cacheEnabled, client: null });
+			return cb(null, { cacheEnabled: cacheEnabled, client: client });
 		}
 	});
 };

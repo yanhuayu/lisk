@@ -1,32 +1,30 @@
 'use strict';/*eslint*/
 
-var node = require('./../../node.js');
-var ed = require('../../../helpers/ed');
-var bignum = require('../../../helpers/bignum.js');
+var chai = require('chai');
+var expect = require('chai').expect;
+var _ = require('lodash');
 var crypto = require('crypto');
 var async = require('async');
 var sinon = require('sinon');
 
-var chai = require('chai');
-var expect = require('chai').expect;
-var _  = require('lodash');
+var ed = require('../../../helpers/ed');
+var constants = require('../../../helpers/constants.js');
+var bignum = require('../../../helpers/bignum.js');
 
-var AccountLogic = require('../../../logic/account.js');
-var modulesLoader = require('../../common/initModule').modulesLoader;
+var application = require('../../common/application.js');
 
 var validAccount = {
 	username: 'genesis_100',
 	isDelegate: 1,
-	u_isDelegate: 1,
+	u_isDelegate: 0,
 	secondSignature: 0,
 	u_secondSignature: 0,
-	u_username: 'genesis_100',
+	u_username: null,
 	address: '10881167371402274308L',
 	publicKey: 'addb0e15a44b0fdc6ff291be28d8c98f5551d0cd9218d749e30ddb87c6e31ca9',
 	secondPublicKey: null,
-	balance: '231386135',
-	u_balance: '231386135',
-	vote: '9820020609280331',
+	balance: '0',
+	u_balance: '0',
 	rate: '0',
 	delegates: null,
 	u_delegates: null,
@@ -36,14 +34,18 @@ var validAccount = {
 	u_multimin: 0,
 	multilifetime: 0,
 	u_multilifetime: 0,
-	blockId: '10352824351134264746',
+	blockId: '6524861224470851795',
 	nameexist: 0,
 	u_nameexist: 0,
-	producedblocks: 27,
-	missedblocks: 1,
-	fees: '231386135',
+	fees: '0',
+	rank: '70',
 	rewards: '0',
-	virgin: 1
+	vote: '10000000000000000',
+	producedBlocks: '0',
+	missedBlocks: '0',
+	virgin: 1,
+	approval: 100,
+	productivity: 0
 };
 
 // TODO:
@@ -55,11 +57,14 @@ describe('account', function () {
 	var account;
 
 	before(function (done) {
-		modulesLoader.initLogicWithDb(AccountLogic, function (err, __account) {
-			expect(err).to.not.exist;
-			account = __account;
+		application.init({sandbox: {name: 'lisk_test_logic_accounts'}}, function (err, scope) {
+			account = scope.logic.account;
 			done();
-		}, {});
+		});
+	});
+
+	after(function (done) {
+		application.cleanup(done);
 	});
 
 	describe('Account', function () {
@@ -154,6 +159,55 @@ describe('account', function () {
 		});
 	});
 
+	describe('calculateApproval', function () {
+
+		it('when voterBalance = 0 and totalSupply = 0, it should return 0', function () {
+			expect(account.calculateApproval(0, 0)).to.equal(0);
+		});
+
+		it('when voterBalance = totalSupply, it should return 100', function () {
+			var totalSupply = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+			var votersBalance = totalSupply;
+			expect(account.calculateApproval(votersBalance, totalSupply)).to.equal(100);
+		});
+
+		it('when voterBalance = 50 and total supply = 100, it should return 50', function () {
+			expect(account.calculateApproval(50, 100)).to.equal(50);
+		});
+
+		it('with random values, it should return approval between 0 and 100', function () {
+			// So total supply is never 0.
+			var totalSupply = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+			var votersBalance = Math.floor(Math.random() * totalSupply);
+			expect(account.calculateApproval(votersBalance, totalSupply)).to.be.least(0).and.be.at.most(100);
+		});
+	});
+
+	describe('calculateProductivity', function () {
+
+		it('when missedBlocks = 0 and producedBlocks = 0, it should return 0', function () {
+			expect(account.calculateProductivity(0, 0)).to.equal(0);
+		});
+
+		it('when missedBlocks = producedBlocks, it should return 50', function () {
+			var producedBlocks = Math.floor(Math.random() * 1000000000);
+			var missedBlocks = producedBlocks;
+			expect(account.calculateProductivity(producedBlocks, missedBlocks)).to.equal(50);
+		});
+
+		it('when missedBlocks = 5 and producedBlocks = 15, it should return 75', function () {
+			var missedBlocks = 5;
+			var producedBlocks = 15;
+			expect(account.calculateProductivity(producedBlocks, missedBlocks)).to.equal(75);
+		});
+
+		it('with random values, it should return approval between 0 and 100', function () {
+			var missedBlocks = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+			var producedBlocks = Math.floor(Math.random() * missedBlocks);
+			expect(account.calculateProductivity(producedBlocks, missedBlocks)).to.be.least(0).and.be.at.most(100);
+		});
+	});
+
 	describe('getAll', function () {
 
 		var allAccounts;
@@ -170,12 +224,56 @@ describe('account', function () {
 				'username',
 				'non-existent-field'
 			];
-			account.getAll({address: validAccount.address }, fields, function (err, res) {
+			account.getAll({address: validAccount.address}, fields, function (err, res) {
 				expect(err).to.not.exist;
 				expect(res.length).to.equal(1);
 				expect(res[0].username).to.equal(validAccount.username);
 				expect(res[0].address).to.equal(validAccount.address);
 				expect(Object.keys(res[0])).to.include('address', 'username');
+				done();
+			});
+		});
+
+		it('should only get requested fields for account', function (done) {
+			var requestedFields = ['username', 'isDelegate', 'address', 'publicKey'];
+			account.get({address: validAccount.address}, requestedFields, function (err, res) {
+				expect(err).to.not.exist;
+				expect(res).to.be.an('object');
+				expect(Object.keys(res)).to.eql(requestedFields);
+				done();
+			});
+		});
+
+		it('should get rows with only productivity field', function (done) {
+			account.getAll({}, ['productivity'], function (err, res) {
+				expect(err).to.not.exist;
+				res.forEach(function (row) {
+					expect(row).to.have.property('productivity').that.is.a('Number').to.be.at.least(0).and.at.most(100);
+					expect(Object.keys(row)).to.have.length(1);
+				});
+				done();
+			});
+		});
+
+		it('should get rows with only approval field', function (done) {
+			account.getAll({}, ['approval'], function (err, res) {
+				expect(err).to.not.exist;
+				res.forEach(function (row) {
+					expect(row).to.have.property('approval').that.is.a('Number').to.be.at.least(0).and.at.most(100);
+					expect(Object.keys(row)).to.have.length(1);
+				});
+				done();
+			});
+		});
+
+		it('should not remove dependent fields if they were requested', function (done) {
+			account.getAll({}, ['approval', 'vote'], function (err, res) {
+				expect(err).to.not.exist;
+				res.forEach(function (row) {
+					expect(row).to.have.property('approval').that.is.a('Number').to.be.at.least(0).and.at.most(100);
+					expect(row).to.have.property('vote').that.is.a('String');
+					expect(Object.keys(row)).to.have.length(2);
+				});
 				done();
 			});
 		});
@@ -187,7 +285,7 @@ describe('account', function () {
 
 			account.getAll({
 				limit: 0,
-				sort: {username: 1}
+				sort: 'username:asc'
 			}, ['username'], function (err, res) {
 				expect(err).to.not.exist;
 				expect(res).to.eql(sortedUsernames);
@@ -202,7 +300,7 @@ describe('account', function () {
 
 			account.getAll({
 				offset: 0,
-				sort: {username: 1}
+				sort: 'username:asc'
 			}, ['username'], function (err, res) {
 				expect(err).to.not.exist;
 				expect(res).to.eql(sortedUsernames);
@@ -274,47 +372,38 @@ describe('account', function () {
 			account.getAll({
 				limit: 50,
 				offset: 0,
-				sort: {username: 1}
+				sort: 'username:asc'
 			}, ['username'], function (err, res) {
 				expect(err).to.not.exist;
-				expect(res).to.eql(sortedUsernames);
+				expect(res).to.have.length(50);
+				expect(res).to.eql(_.sortBy(res, 'username'));
 				done();
 			});
 		});
 
 		it('should ignore negative limit', function (done) {
-			var sortedUsernames = _.sortBy(allAccounts, 'username').map(function (v) {
-				return {username: v.username};
-			});
-
 			account.getAll({
 				limit: -50,
-				sort: {username: 1}
+				sort: 'username:asc'
 			}, ['username'], function (err, res) {
 				expect(err).to.not.exist;
-				expect(res).to.eql(sortedUsernames);
+				expect(res).to.eql(_.sortBy(res, 'username'));
 				done();
 			});
 		});
 
 		it('should sort the result according to field type in ascending order', function (done) {
-			var sortedUsernames = _.sortBy(allAccounts, 'username').map(function (v) {
-				return {username: v.username};
-			});
-			account.getAll({sort: {username: 1}}, ['username'], function (err, res) {
+			account.getAll({sort: 'username:asc'}, ['username'], function (err, res) {
 				expect(err).to.not.exist;
-				expect(res).to.eql(sortedUsernames);
+				expect(res).to.eql(_.sortBy(res, 'username'));
 				done();
 			});
 		});
 
 		it('should sort the result according to field type in descending order', function (done) {
-			var sortedUsernames = _.sortBy(allAccounts, 'username').reverse().map(function (v) {
-				return {username: v.username};
-			});
-			account.getAll({sort: {username: -1}}, ['username'], function (err, res) {
+			account.getAll({sort: 'username:desc'}, ['username'], function (err, res) {
 				expect(err).to.not.exist;
-				expect(res).to.eql(sortedUsernames);
+				expect(res).to.eql(_.sortBy(res, 'username').reverse());
 				done();
 			});
 		});

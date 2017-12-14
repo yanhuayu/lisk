@@ -7,8 +7,8 @@ var _  = require('lodash');
 var sinon = require('sinon');
 
 var failureCodes = require('../../../api/ws/rpc/failureCodes');
-var modulesLoader = require('../../common/initModule').modulesLoader;
-var randomPeer = require('../../common/objectStubs').randomPeer;
+var modulesLoader = require('../../common/modulesLoader');
+var prefixedPeer = require('../../fixtures/peers').randomNormalizedPeer;
 var Peers = require('../../../logic/peers.js');
 var Peer = require('../../../logic/peer.js');
 
@@ -34,7 +34,7 @@ describe('peers', function () {
 
 	beforeEach(function () {
 		peersModuleMock.acceptable = sinon.stub().returnsArg(0);
-		validPeer = _.assign({}, randomPeer);
+		validPeer = _.assign({}, prefixedPeer);
 	});
 
 	function removeAll () {
@@ -62,7 +62,7 @@ describe('peers', function () {
 
 		var commonProperties = _.intersection(_.keys(peerA), _.keys(peerB));
 
-		if (commonProperties.indexOf('ip') === -1 || commonProperties.indexOf('port') === -1) {
+		if (commonProperties.indexOf('ip') === -1 || commonProperties.indexOf('wsPort') === -1) {
 			throw new Error('Insufficient data to compare the peers (no port or ip provided)');
 		}
 
@@ -168,13 +168,13 @@ describe('peers', function () {
 
 			var differentPortPeer = _.clone(validPeer);
 			differentPortPeer.nonce = 'differentNonce';
-			differentPortPeer.port += 1;
+			differentPortPeer.wsPort += 1;
 			peers.upsert(differentPortPeer);
 			var list = peers.list();
 			expect(list.length).equal(2);
 
-			var demandedPorts = _.map([validPeer, differentPortPeer], 'port');
-			var listPorts = _.map(list, 'port');
+			var demandedPorts = _.map([validPeer, differentPortPeer], 'wsPort');
+			var listPorts = _.map(list, 'wsPort');
 
 			expect(_.isEqual(demandedPorts.sort(), listPorts.sort())).to.be.ok;
 		});
@@ -226,7 +226,7 @@ describe('peers', function () {
 		it('should return false if peer is not on the list', function () {
 			expect(peers.exists({
 				ip: '41.41.41.41',
-				port: '4444',
+				wsPort: '4444',
 				nonce: 'another_nonce'
 			})).not.to.be.ok;
 		});
@@ -240,17 +240,16 @@ describe('peers', function () {
 
 		it('should return true if peer with same nonce is on the list', function () {
 			var res = peers.upsert(validPeer);
-			console.log(res);
 			var list = peers.list(true);
 			expect(list.length).equal(1);
-			expect(peers.exists({ip: validPeer.ip, port: validPeer.port, nonce: validPeer.nonce})).to.be.ok;
+			expect(peers.exists({ip: validPeer.ip, wsPort: validPeer.wsPort, nonce: validPeer.nonce})).to.be.ok;
 		});
 
 		it('should return true if peer with same address is on the list', function () {
 			peers.upsert(validPeer);
 			var list = peers.list(true);
 			expect(list.length).equal(1);
-			expect(peers.exists({ip: validPeer.ip, port: validPeer.port})).to.be.ok;
+			expect(peers.exists({ip: validPeer.ip, wsPort: validPeer.wsPort})).to.be.ok;
 		});
 	});
 
@@ -268,7 +267,7 @@ describe('peers', function () {
 
 		it('should return inserted peer by address', function () {
 			peers.upsert(validPeer);
-			var insertedPeer = peers.get(validPeer.ip + ':' + validPeer.port);
+			var insertedPeer = peers.get(validPeer.ip + ':' + validPeer.wsPort);
 			expect(arePeersEqual(insertedPeer, validPeer)).to.be.ok;
 
 		});

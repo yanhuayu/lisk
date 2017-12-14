@@ -1,8 +1,10 @@
 'use strict';
 
-var constants = require('../helpers/constants.js');
+var apiCodes = require('../helpers/apiCodes.js');
+var ApiError = require('../helpers/apiError.js');
 var Signature = require('../logic/signature.js');
 var transactionTypes = require('../helpers/transactionTypes.js');
+var _ = require('lodash');
 
 // Private fields
 var modules, library, self, __private = {};
@@ -26,8 +28,8 @@ function Signatures (cb, scope) {
 		ed: scope.ed,
 		balancesSequence: scope.balancesSequence,
 		logic: {
-			transaction: scope.logic.transaction,
-		},
+			transaction: scope.logic.transaction
+		}
 	};
 	self = this;
 
@@ -71,18 +73,39 @@ Signatures.prototype.onBind = function (scope) {
 
 // Shared API
 /**
- * @todo implement API comments with apidoc.
- * @see {@link http://apidocjs.com/}
+ * Public methods, accessible via API
  */
 Signatures.prototype.shared = {
-	getFee: function (req, cb) {
-		var fee = constants.fees.secondsignature;
 
-		return setImmediate(cb, null, {fee: fee});
-	},
+	/**
+	 * Post signatures for transactions.
+	 * @param {Array.<{transactionId: string, publicKey: string, signature: string}>} signatures - Array of signatures.
+	 * @param {function} cb - Callback function.
+	 * @return {setImmediateCallback}
+	 */
+	postSignatures: function (signatures, cb) {
+		var modifiedSignatures = _.map(signatures, function (signature) {
+			signature.transaction = signature.transactionId;
+			delete signature.transactionId;
+			return signature;
+		});
 
-	postSignatures: function (req, cb) {
-		return modules.transport.shared.postSignatures(req.body, cb);
+		return modules.transport.shared.postSignatures({signatures: modifiedSignatures}, function (err, res) {
+			var processingError = /(error|processing)/ig;
+			var badRequestBodyError = /(invalid|signature)/ig;
+
+			if (res.success === false) {
+				if (processingError.exec(res.message).length === 2) {
+					return setImmediate(cb, new ApiError(res.message, apiCodes.PROCESSING_ERROR));
+				} else if(badRequestBodyError.exec(res.message).length === 2) {
+					return setImmediate(cb, new ApiError(res.message, apiCodes.BAD_REQUEST));
+				} else {
+					return setImmediate(cb, new ApiError(res.message, apiCodes.INTERNAL_SERVER_ERROR));
+				}
+			} else {
+				return setImmediate(cb, null, {status: 'Signature Accepted'});
+			}
+		});
 	}
 };
 

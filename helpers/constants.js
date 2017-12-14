@@ -10,10 +10,10 @@
  * @property {number} blockReceiptTimeOut
  * @property {number} confirmationLength
  * @property {Date} epochTime
- * @property {object} fees - The default values for fees.
+ * @property {Object} fees - The default values for fees.
  * @property {number} fees.send
  * @property {number} fees.vote
- * @property {number} fees.secondsignature
+ * @property {number} fees.secondSignature
  * @property {number} fees.delegate
  * @property {number} fees.multisignature
  * @property {number} fees.dapp
@@ -33,7 +33,7 @@
  * @property {string[]} nethashes - Mainnet and Testnet.
  * @property {number} numberLength
  * @property {number} requestLength
- * @property {object} rewards
+ * @property {Object} rewards
  * @property {number[]} rewards.milestones - Initial 5, and decreasing until 1.
  * @property {number} rewards.offset - Start rewards at block (n).
  * @property {number} rewards.distance - Distance between each milestone
@@ -43,8 +43,11 @@
  */
 var constants = {
 	activeDelegates: 101,
-	maxVotesPerTransaction: 33,
 	addressLength: 208,
+	additionalData: {
+		minLength: 1,
+		maxLength: 64
+	},
 	blockHeaderLength: 248,
 	blockReceiptTimeOut: 20, // 2 blocks
 	confirmationLength: 77,
@@ -52,10 +55,12 @@ var constants = {
 	fees: {
 		send: 10000000,
 		vote: 100000000,
-		secondsignature: 500000000,
+		secondSignature: 500000000,
 		delegate: 2500000000,
 		multisignature: 500000000,
-		dapp: 2500000000,
+		dappRegistration: 2500000000,
+		dappWithdrawal: 10000000,
+		dappDeposit: 10000000,
 		data: 10000000
 	},
 	feeStart: 1,
@@ -70,7 +75,23 @@ var constants = {
 	maxSharedTxs: 100,
 	maxSignaturesLength: 196 * 256,
 	maxTxsPerBlock: 25,
+	maxVotesPerTransaction: 33,
+	maxVotesPerAccount: 101,
 	minBroadhashConsensus: 51,
+	multisigConstraints: {
+		min: {
+			minimum: 1,
+			maximum: 15
+		},
+		lifetime: {
+			minimum: 1,
+			maximum: 72
+		},
+		keysgroup: {
+			minItems: 1,
+			maxItems: 15
+		}
+	},
 	nethashes: [
 		// Mainnet
 		'ed14889723f24ecc54871d058d98ce91ff2f973192075c0155ba2b7b70ad2511',
@@ -94,21 +115,7 @@ var constants = {
 	signatureLength: 196,
 	// WARNING: When changing totalAmount you also need to change getBlockRewards(int) SQL function!
 	totalAmount: 10000000000000000,
-	unconfirmedTransactionTimeOut: 10800, // 1080 blocks
-	multisigConstraints: {
-		min: {
-			minimum: 1,
-			maximum: 15
-		},
-		lifetime: {
-			minimum: 1,
-			maximum: 72
-		},
-		keysgroup: {
-			minItems: 1,
-			maxItems: 15
-		}
-	}
+	unconfirmedTransactionTimeOut: 10800 // 1080 blocks
 };
 
 module.exports = constants;

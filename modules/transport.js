@@ -103,7 +103,7 @@ __private.removePeer = function (options, extraMessage) {
 		return false;
 	}
 
-	library.logger.debug([options.code, 'Removing peer', options.peer.ip + ':' + options.peer.port, extraMessage].join(' '));
+	library.logger.debug([options.code, 'Removing peer', options.peer.ip + ':' + options.peer.wsPort, extraMessage].join(' '));
 	return modules.peers.remove(options.peer);
 };
 
@@ -138,7 +138,7 @@ __private.receiveSignatures = function (query, cb) {
 						library.logger.debug(err, signature);
 					}
 
-					return setImmediate(eachSeriesCb);
+					return setImmediate(eachSeriesCb, err);
 				});
 			}, seriesCb);
 		}
@@ -152,9 +152,9 @@ __private.receiveSignatures = function (query, cb) {
  * @private
  * @implements {library.schema.validate}
  * @implements {modules.multisignatures.processSignature}
- * @param {object} query
+ * @param {Object} query
  * @param {string} query.signature
- * @param {object} query.transaction
+ * @param {Object} query.transaction
  * @return {setImmediateCallback} cb | error messages
  */
 __private.receiveSignature = function (query, cb) {
@@ -188,37 +188,22 @@ __private.receiveSignature = function (query, cb) {
 __private.receiveTransactions = function (query, peer, extraLogMessage, cb) {
 	var transactions;
 
-	async.series({
-		validateSchema: function (seriesCb) {
-			library.schema.validate(query, schema.transactions, function (err) {
-				if (err) {
-					return setImmediate(seriesCb, 'Invalid transactions body');
-				} else {
-					return setImmediate(seriesCb);
-				}
-			});
-		},
-		receiveTransactions: function (seriesCb) {
-			transactions = query.transactions;
+	transactions = query.transactions;
 
-			async.eachSeries(transactions, function (transaction, eachSeriesCb) {
-				if (!transaction) {
-					return setImmediate(eachSeriesCb, 'Unable to process signature. Signature is undefined.');
-				}
-				transaction.bundled = true;
-
-				__private.receiveTransaction(transaction, peer, extraLogMessage, function (err) {
-					if (err) {
-						library.logger.debug(err, transaction);
-					}
-
-					return setImmediate(eachSeriesCb);
-				});
-			}, seriesCb);
+	async.eachSeries(transactions, function (transaction, eachSeriesCb) {
+		if (!transaction) {
+			return setImmediate(eachSeriesCb, 'Unable to process transaction. Transaction is undefined.');
 		}
-	}, function (err) {
-		return setImmediate(cb, err);
-	});
+		transaction.bundled = true;
+
+		__private.receiveTransaction(transaction, peer, extraLogMessage, function (err) {
+			if (err) {
+				library.logger.debug(err, transaction);
+			}
+
+			return setImmediate(eachSeriesCb);
+		});
+	}, cb);
 };
 
 /**
@@ -242,7 +227,7 @@ __private.receiveTransaction = function (transaction, peer, extraLogMessage, cb)
 	try {
 		transaction = library.logic.transaction.objectNormalize(transaction);
 	} catch (e) {
-		library.logger.debug('Transaction normalization failed', {id: id, err: e.toString(), module: 'transport', tx: transaction});
+		library.logger.debug('Transaction normalization failed', {id: id, err: e.toString(), module: 'transport', transaction: transaction});
 
 		__private.removePeer({peer: peer, code: 'ETRANSACTION'}, extraLogMessage);
 
@@ -556,11 +541,11 @@ Transport.prototype.shared = {
 		var transactions = modules.transactions.getMultisignatureTransactionList(true, constants.maxSharedTxs);
 		var signatures = [];
 
-		async.eachSeries(transactions, function (trs, __cb) {
-			if (trs.signatures && trs.signatures.length) {
+		async.eachSeries(transactions, function (transaction, __cb) {
+			if (transaction.signatures && transaction.signatures.length) {
 				signatures.push({
-					transaction: trs.id,
-					signatures: trs.signatures
+					transaction: transaction.id,
+					signatures: transaction.signatures
 				});
 			}
 			return setImmediate(__cb);
@@ -575,23 +560,28 @@ Transport.prototype.shared = {
 	},
 
 	postTransactions: function (query, cb) {
-		if (query.transactions) {
-			__private.receiveTransactions(query, query.peer, query.extraLogMessage, function (err) {
-				if (err) {
-					return setImmediate(cb, null, {success: false, message: err});
-				} else {
+		library.schema.validate(query, schema.transactions, function (err) {
+			if (err) {
+				return setImmediate(cb, null, {success: false, message: err});
+			}
+
+			if (query.transactions.length == 1) {
+				__private.receiveTransaction(query.transactions[0], query.peer, query.extraLogMessage, function (err, id) {
+					if (err) {
+						return setImmediate(cb, null, {success: false,  message: err});
+					} else {
+						return setImmediate(cb, null, {success: true, transactionId: id});
+					}
+				});
+			} else {
+				__private.receiveTransactions(query, query.peer, query.extraLogMessage, function (err) {
+					if (err) {
+						return setImmediate(cb, null, {success: false, message: err});
+					}
 					return setImmediate(cb, null, {success: true});
-				}
-			});
-		} else {
-			__private.receiveTransaction(query.transaction, query.peer, query.extraLogMessage, function (err, id) {
-				if (err) {
-					return setImmediate(cb, null, {success: false,  message: err});
-				} else {
-					return setImmediate(cb, null, {success: true, transactionId: id});
-				}
-			});
-		}
+				});
+			}
+		});
 	}
 };
 

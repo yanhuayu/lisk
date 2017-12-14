@@ -62,28 +62,53 @@ module.exports = function (grunt) {
 				command: 'cd ' + version_dir + '/ && touch build && echo "v' + today + '" > build'
 			},
 
-			coverage: {
-				command: 'export NODE_ENV=TEST && node_modules/.bin/istanbul cover --dir test/.coverage-unit ./node_modules/.bin/_mocha',
+			testUnit: {
+				command: 'export NODE_ENV=test TEST_TYPE=unit && node test/common/parallelTests.js unit',
 				maxBuffer: maxBufferSize
 			},
 
-			coverageSingle: {
-				command: 'export NODE_ENV=TEST && node_modules/.bin/istanbul cover --dir test/.coverage-unit --include-pid ./node_modules/.bin/_mocha $TEST',
+			testUnitExtensive: {
+				command: 'export NODE_ENV=test TEST_TYPE=unit && node test/common/parallelTests.js unit @slow',
 				maxBuffer: maxBufferSize
 			},
 
-			coverageUnit: {
-				command: 'node_modules/.bin/istanbul cover --dir test/.coverage-unit ./node_modules/.bin/_mocha test/unit/index.js',
+			testFunctionalWs: {
+				command: 'export NODE_ENV=test TEST_TYPE=func && node test/common/parallelTests.js functional-ws',
 				maxBuffer: maxBufferSize
 			},
 
-			testFunctional: {
-				command: './node_modules/.bin/mocha test/api/index.js',
+			testFunctionalWsExtensive: {
+				command: 'export NODE_ENV=test TEST_TYPE=func && node test/common/parallelTests.js functional-ws @slow',
+				maxBuffer: maxBufferSize
+			},
+
+			testFunctionalHttpGet: {
+				command: 'export NODE_ENV=test TEST_TYPE=func && node test/common/parallelTests.js functional-http-get',
+				maxBuffer: maxBufferSize
+			},
+
+			testFunctionalHttpGetExtensive: {
+				command: 'export NODE_ENV=test TEST_TYPE=func && node test/common/parallelTests.js functional-http-get @slow',
+				maxBuffer: maxBufferSize
+			},
+
+			testFunctionalHttpPost: {
+				command: 'export NODE_ENV=test TEST_TYPE=func && node test/common/parallelTests.js functional-http-post',
+				maxBuffer: maxBufferSize
+			},
+
+			testFunctionalSystem: {
+				command: 'export NODE_ENV=test TEST_TYPE=func && node test/common/parallelTests.js functional-system',
 				maxBuffer: maxBufferSize
 			},
 
 			testIntegration: {
-				command: './node_modules/.bin/_mocha --bail test/integration/peers.integration.js ',
+				command: './node_modules/.bin/_mocha --bail test/integration/index.js --grep @slow --invert',
+				maxBuffer: maxBufferSize
+			},
+
+			testIntegrationExtensive: {
+				command: './node_modules/.bin/_mocha --bail test/integration/index.js',
 				maxBuffer: maxBufferSize
 			},
 
@@ -128,7 +153,8 @@ module.exports = function (grunt) {
 				'logic',
 				'schema',
 				'tasks',
-				'test'
+				'test',
+				'scripts'
 			]
 		}
 	});
@@ -142,13 +168,20 @@ module.exports = function (grunt) {
 
 	grunt.registerTask('default', ['release']);
 	grunt.registerTask('release', ['exec:folder', 'obfuscator', 'exec:createBundles', 'exec:package', 'exec:build', 'compress']);
-	grunt.registerTask('jenkins', ['exec:coverageSingle']);
 	grunt.registerTask('coverageReport', ['exec:coverageReport']);
 	grunt.registerTask('eslint-nofix', ['eslint']);
-	grunt.registerTask('test', ['eslint', 'exec:coverage']);
-	grunt.registerTask('test-unit', ['eslint', 'exec:coverageUnit']);
-	grunt.registerTask('test-functional', ['eslint', 'exec:testFunctional']);
+	grunt.registerTask('test', ['test-unit', 'test-functional', 'test-integration']);
+	grunt.registerTask('test-unit', ['eslint', 'exec:testUnit']);
+	grunt.registerTask('test-unit-extensive', ['eslint', 'exec:testUnitExtensive']);
+	grunt.registerTask('test-functional', ['test-functional-ws', 'test-functional-http-get', 'test-functional-http-post']);
+	grunt.registerTask('test-functional-ws', ['eslint', 'exec:testFunctionalWs']);
+	grunt.registerTask('test-functional-ws-extensive', ['eslint', 'exec:testFunctionalWsExtensive']);
+	grunt.registerTask('test-functional-http-get', ['eslint', 'exec:testFunctionalHttpGet']);
+	grunt.registerTask('test-functional-http-get-extensive', ['eslint', 'exec:testFunctionalHttpGetExtensive']);
+	grunt.registerTask('test-functional-http-post', ['eslint', 'exec:testFunctionalHttpPost']);
+	grunt.registerTask('test-functional-system', ['eslint', 'exec:testFunctionalSystem']);
 	grunt.registerTask('test-integration', ['eslint', 'exec:testIntegration']);
+	grunt.registerTask('test-integration-extensive', ['eslint', 'exec:testIntegrationExtensive']);
 
 	grunt.registerTask('eslint-fix', 'Run eslint and fix formatting', function () {
 		grunt.config.set('eslint.options.fix', true);

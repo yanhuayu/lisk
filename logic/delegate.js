@@ -1,20 +1,25 @@
 'use strict';
 
+var async = require('async');
 var constants = require('../helpers/constants.js');
+var exceptions = require('../helpers/exceptions.js');
 
 // Private fields
-var modules, library;
+var modules, library, self;
 
 /**
  * Initializes library.
  * @memberof module:delegates
  * @class
  * @classdesc Main delegate logic.
+ * @param {logger} logger
  * @param {ZSchema} schema
  */
-function Delegate (schema) {
+function Delegate (logger, schema) {
+	self = this;
 	library = {
 		schema: schema,
+		logger: logger
 	};
 }
 
@@ -33,27 +38,26 @@ Delegate.prototype.bind = function (accounts) {
  * Obtains constant fee delegate.
  * @see {@link module:helpers/constants}
  * @returns {number} constants.fees.delegate
- * @todo delete unnecessary function parameters trs, sender.
+ * @todo Delete unused transaction, sender parameters.
  */
-Delegate.prototype.calculateFee = function (trs, sender) {
+Delegate.prototype.calculateFee = function (transaction, sender) {
 	return constants.fees.delegate;
 };
 
 /**
  * Verifies fields from transaction and sender, calls modules.accounts.getAccount().
  * @implements module:accounts#Account~getAccount
- * @param {transaction} trs
+ * @param {transaction} transaction
  * @param {account} sender
  * @param {function} cb - Callback function.
- * @returns {setImmediateCallback|Object} returns error if invalid parameter | 
- * trs validated.
+ * @returns {setImmediateCallback|Object} Returns error if invalid parameter | transaction validated.
  */
-Delegate.prototype.verify = function (trs, sender, cb) {
-	if (trs.recipientId) {
+Delegate.prototype.verify = function (transaction, sender, cb) {
+	if (transaction.recipientId) {
 		return setImmediate(cb, 'Invalid recipient');
 	}
 
-	if (trs.amount !== 0) {
+	if (transaction.amount !== 0) {
 		return setImmediate(cb, 'Invalid transaction amount');
 	}
 
@@ -61,22 +65,22 @@ Delegate.prototype.verify = function (trs, sender, cb) {
 		return setImmediate(cb, 'Account is already a delegate');
 	}
 
-	if (!trs.asset || !trs.asset.delegate) {
+	if (!transaction.asset || !transaction.asset.delegate) {
 		return setImmediate(cb, 'Invalid transaction asset');
 	}
 
-	if (!trs.asset.delegate.username) {
+	if (!transaction.asset.delegate.username) {
 		return setImmediate(cb, 'Username is undefined');
 	}
 
-	if (trs.asset.delegate.username !== trs.asset.delegate.username.toLowerCase()) {
+	if (transaction.asset.delegate.username !== transaction.asset.delegate.username.toLowerCase()) {
 		return setImmediate(cb, 'Username must be lowercase');
 	}
 
 	var isAddress = /^[0-9]{1,21}[L|l]$/g;
 	var allowSymbols = /^[a-z0-9!@$&_.]+$/g;
 
-	var username = String(trs.asset.delegate.username).toLowerCase().trim();
+	var username = String(transaction.asset.delegate.username).toLowerCase().trim();
 
 	if (username === '') {
 		return setImmediate(cb, 'Empty username');
@@ -94,48 +98,38 @@ Delegate.prototype.verify = function (trs, sender, cb) {
 		return setImmediate(cb, 'Username can only contain alphanumeric characters with the exception of !@$&_.');
 	}
 
-	modules.accounts.getAccount({
-		username: username
-	}, function (err, account) {
-		if (err) {
-			return setImmediate(cb, err);
-		}
-
-		if (account) {
-			return setImmediate(cb, 'Username already exists');
-		}
-
-		return setImmediate(cb, null, trs);
+	self.checkConfirmed(transaction, function (err) {
+		return setImmediate(cb, err, transaction);
 	});
 };
 
 /**
  * Returns transaction with setImmediate.
- * @param {transaction} trs
+ * @param {transaction} transaction
  * @param {account} sender
  * @param {function} cb - Callback function.
  * @returns {setImmediateCallback} Null error
- * @todo delete extra parameter sender.
+ * @todo Delete unused sender parameter.
  */
-Delegate.prototype.process = function (trs, sender, cb) {
-	return setImmediate(cb, null, trs);
+Delegate.prototype.process = function (transaction, sender, cb) {
+	return setImmediate(cb, null, transaction);
 };
 
 /**
  * Validates delegate username and returns buffer.
- * @param {transaction} trs
+ * @param {transaction} transaction
  * @returns {null|string} Returns null if no delegate| buffer.
  * @throws {error} If buffer fails.
  */
-Delegate.prototype.getBytes = function (trs) {
-	if (!trs.asset.delegate.username) {
+Delegate.prototype.getBytes = function (transaction) {
+	if (!transaction.asset.delegate.username) {
 		return null;
 	}
 
 	var buf;
 
 	try {
-		buf = Buffer.from(trs.asset.delegate.username, 'utf8');
+		buf = Buffer.from(transaction.asset.delegate.username, 'utf8');
 	} catch (e) {
 		throw e;
 	}
@@ -144,94 +138,160 @@ Delegate.prototype.getBytes = function (trs) {
 };
 
 /**
- * Checks trs delegate and calls modules.accounts.setAccountAndGet() with username.
- * @implements module:accounts#Accounts~setAccountAndGet
- * @param {transaction} trs
- * @param {account} sender
+ * Calls cb with error when account already exists.
+ * @param {transaction} transaction
+ * @param {string} username - Key to check transaction with (username / u_username).
+ * @param {string} isDelegate - Key to check transaction with (isDelegate / u_isDelegate).
  * @param {function} cb - Callback function.
- * @todo delete extra parameter block.
  */
-Delegate.prototype.apply = function (trs, block, sender, cb) {
-	var data = {
-		address: sender.address,
-		u_isDelegate: 0,
-		isDelegate: 1,
-		vote: 0
-	};
-
-	if (trs.asset.delegate.username) {
-		data.u_username = null;
-		data.username = trs.asset.delegate.username;
-	}
-
-	modules.accounts.setAccountAndGet(data, cb);
+Delegate.prototype.checkDuplicates = function (transaction, username, isDelegate, cb) {
+	async.parallel({
+		duplicatedDelegate: function (eachCb) {
+			var query = {};
+			query[isDelegate] = 1;
+			query.publicKey = transaction.senderPublicKey;
+			return modules.accounts.getAccount(query, [username], eachCb);
+		},
+		duplicatedUsername: function (eachCb) {
+			var query = {};
+			query[username] = transaction.asset.delegate.username;
+			return modules.accounts.getAccount(query, [username], eachCb);
+		}
+	}, function (err, res) {
+		if (err) {
+			return setImmediate(cb, err);
+		}
+		if (res.duplicatedDelegate) {
+			return setImmediate(cb, 'Account is already a delegate');
+		}
+		if (res.duplicatedUsername) {
+			return setImmediate(cb, 'Username ' + transaction.asset.delegate.username + ' already exists');
+		}
+		return setImmediate(cb);
+	});
 };
 
 /**
- * Checks trs delegate and no nameexist and calls modules.accounts.setAccountAndGet() with u_username.
+ * Checks if confirmed delegate is already registered.
+ * @param {transaction} transaction
+ * @param {function} cb - Callback function.
+ */
+Delegate.prototype.checkConfirmed = function (transaction, cb) {
+	self.checkDuplicates(transaction, 'username', 'isDelegate', function (err) {
+		if (err && exceptions.delegates.indexOf(transaction.id) > -1) {
+			library.logger.debug(err);
+			library.logger.debug(JSON.stringify(transaction));
+			err = null;
+		}
+		return setImmediate(cb, err, transaction);
+	});
+};
+
+/**
+ * Checks if unconfirmed delegate is already registered.
+ * @param {transaction} transaction
+ * @param {function} cb - Callback function.
+ */
+Delegate.prototype.checkUnconfirmed = function (transaction, cb) {
+	self.checkDuplicates(transaction, 'u_username', 'u_isDelegate', function (err) {
+		return setImmediate(cb, err, transaction);
+	});
+};
+
+/**
+ * Checks transaction delegate and calls modules.accounts.setAccountAndGet() with username.
  * @implements module:accounts#Accounts~setAccountAndGet
- * @param {transaction} trs
+ * @param {transaction} transaction
+ * @param {block} block
  * @param {account} sender
  * @param {function} cb - Callback function.
- * @todo delete extra parameter block.
+ * @todo Delete unused block parameter.
  */
-Delegate.prototype.undo = function (trs, block, sender, cb) {
+Delegate.prototype.apply = function (transaction, block, sender, cb) {
+	var data = {
+		publicKey: transaction.senderPublicKey,
+		address: sender.address,
+		u_isDelegate: 0,
+		isDelegate: 1,
+		vote: 0,
+		u_username: null,
+		username: transaction.asset.delegate.username
+	};
+
+	async.series([
+		function (seriesCb) {
+			self.checkConfirmed(transaction, seriesCb);
+		},
+		function (seriesCb) {
+			modules.accounts.setAccountAndGet(data, seriesCb);
+		}
+	], cb);
+};
+
+/**
+ * Checks transaction delegate and no nameexist and calls modules.accounts.setAccountAndGet() with u_username.
+ * @implements module:accounts#Accounts~setAccountAndGet
+ * @param {transaction} transaction
+ * @param {block} block
+ * @param {account} sender
+ * @param {function} cb - Callback function.
+ * @todo Delete unused block parameter.
+ */
+Delegate.prototype.undo = function (transaction, block, sender, cb) {
 	var data = {
 		address: sender.address,
 		u_isDelegate: 1,
 		isDelegate: 0,
-		vote: 0
+		vote: 0,
+		username: null,
+		u_username: transaction.asset.delegate.username
 	};
-
-	if (!sender.nameexist && trs.asset.delegate.username) {
-		data.username = null;
-		data.u_username = trs.asset.delegate.username;
-	}
 
 	modules.accounts.setAccountAndGet(data, cb);
 };
 
 /**
- * Checks trs delegate and calls modules.accounts.setAccountAndGet() with u_username.
+ * Checks transaction delegate and calls modules.accounts.setAccountAndGet() with u_username.
  * @implements module:accounts#Accounts~setAccountAndGet
- * @param {transaction} trs
+ * @param {transaction} transaction
  * @param {account} sender
  * @param {function} cb - Callback function.
  */
-Delegate.prototype.applyUnconfirmed = function (trs, sender, cb) {
+Delegate.prototype.applyUnconfirmed = function (transaction, sender, cb) {
 	var data = {
+		publicKey: transaction.senderPublicKey,
 		address: sender.address,
 		u_isDelegate: 1,
-		isDelegate: 0
+		isDelegate: 0,
+		username: null,
+		u_username: transaction.asset.delegate.username
 	};
 
-	if (trs.asset.delegate.username) {
-		data.username = null;
-		data.u_username = trs.asset.delegate.username;
-	}
-
-	modules.accounts.setAccountAndGet(data, cb);
+	async.series([
+		function (seriesCb) {
+			self.checkUnconfirmed(transaction, seriesCb);
+		},
+		function (seriesCb) {
+			modules.accounts.setAccountAndGet(data, seriesCb);
+		}
+	], cb);
 };
 
 /**
- * Checks trs delegate and calls modules.accounts.setAccountAndGet() with 
- * username and u_username both null.
+ * Checks transaction delegate and calls modules.accounts.setAccountAndGet() with username and u_username both null.
  * @implements module:accounts#Accounts~setAccountAndGet
- * @param {transaction} trs
+ * @param {transaction} transaction
  * @param {account} sender
  * @param {function} cb - Callback function.
  */
-Delegate.prototype.undoUnconfirmed = function (trs, sender, cb) {
+Delegate.prototype.undoUnconfirmed = function (transaction, sender, cb) {
 	var data = {
 		address: sender.address,
 		u_isDelegate: 0,
-		isDelegate: 0
+		isDelegate: 0,
+		username: null,
+		u_username: null
 	};
-
-	if (trs.asset.delegate.username) {
-		data.username = null;
-		data.u_username = null;
-	}
 
 	modules.accounts.setAccountAndGet(data, cb);
 };
@@ -240,30 +300,30 @@ Delegate.prototype.schema = {
 	id: 'Delegate',
 	type: 'object',
 	properties: {
-		publicKey: {
+		username: {
 			type: 'string',
-			format: 'publicKey'
+			format: 'username'
 		}
 	},
-	required: ['publicKey']
+	required: ['username']
 };
 
 /**
  * Validates transaction delegate schema.
- * @param {transaction} trs
- * @returns {err|trs} Error message if fails validation | input parameter.
+ * @param {transaction} transaction
+ * @returns {err|transaction} Error message if fails validation | input parameter.
  * @throws {string} Failed to validate delegate schema.
  */
-Delegate.prototype.objectNormalize = function (trs) {
-	var report = library.schema.validate(trs.asset.delegate, Delegate.prototype.schema);
+Delegate.prototype.objectNormalize = function (transaction) {
+	var report = library.schema.validate(transaction.asset.delegate, Delegate.prototype.schema);
 
 	if (!report) {
-		throw 'Failed to validate delegate schema: ' + this.scope.schema.getLastErrors().map(function (err) {
+		throw 'Failed to validate delegate schema: ' + library.schema.getLastErrors().map(function (err) {
 			return err.message;
 		}).join(', ');
 	}
 
-	return trs;
+	return transaction;
 };
 
 /**
@@ -295,35 +355,35 @@ Delegate.prototype.dbFields = [
 ];
 
 /**
- * Creates Object based on trs data.
- * @param {transaction} trs - Contains delegate username.
+ * Creates object based on transaction data.
+ * @param {transaction} transaction - Contains delegate username.
  * @returns {Object} {table:delegates, username and transaction id}.
  */
-Delegate.prototype.dbSave = function (trs) {
+Delegate.prototype.dbSave = function (transaction) {
 	return {
 		table: this.dbTable,
 		fields: this.dbFields,
 		values: {
-			tx_id: trs.id,
-			name: trs.asset.delegate.username,
-			pk: Buffer.from(trs.senderPublicKey, 'hex'),
-			address: trs.senderId
+			tx_id: transaction.id,
+			name: transaction.asset.delegate.username,
+			pk: Buffer.from(transaction.senderPublicKey, 'hex'),
+			address: transaction.senderId
 		}
 	};
 };
 
 /**
- * Evaluates transaction signatures and sender multisignatures.
- * @param {transaction} trs - signatures.
+ * Checks if transaction has enough signatures to be confirmed.
+ * @param {transaction} transaction
  * @param {account} sender
- * @return {Boolean} logic based on trs signatures and sender multisignatures.
+ * @return {boolean} True if transaction signatures greather than sender multimin, or there are no sender multisignatures.
  */
-Delegate.prototype.ready = function (trs, sender) {
+Delegate.prototype.ready = function (transaction, sender) {
 	if (Array.isArray(sender.multisignatures) && sender.multisignatures.length) {
-		if (!Array.isArray(trs.signatures)) {
+		if (!Array.isArray(transaction.signatures)) {
 			return false;
 		}
-		return trs.signatures.length >= sender.multimin;
+		return transaction.signatures.length >= sender.multimin;
 	} else {
 		return true;
 	}

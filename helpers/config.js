@@ -38,9 +38,9 @@ function Config(packageJson) {
 	else {
 		appConfig = JSON.parse(appConfig);
 	}
-	console.log(appConfig);
-	if (program.port) {
-		appConfig.port = +program.port;
+
+	if (program.wsPort) {
+		appConfig.wsPort = +program.wsPort;
 	}
 
 	if (program.httpPort) {
@@ -61,7 +61,7 @@ function Config(packageJson) {
 				peer = peer.split(':');
 				return {
 					ip: peer.shift(),
-					port: peer.shift() || appConfig.port
+					wsPort: peer.shift() || appConfig.wsPort
 				};
 			});
 		}

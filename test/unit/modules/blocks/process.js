@@ -3,12 +3,15 @@
 var expect = require('chai').expect;
 var async = require('async');
 
-var node = require('../../../node');
-var modulesLoader = require('../../../common/initModule').modulesLoader;
-var genesisBlock = require('../../../../genesisBlock.json');
+
+var genesisBlock = require('../../../data/genesisBlock.json');
+var application = require('../../../common/application');
 var loadTables = require('./processTablesData.json');
-var clearDatabaseTable = require('../../../common/globalBefore').clearDatabaseTable;
-var DBSandbox = require('../../../common/globalBefore').DBSandbox;
+
+var modulesLoader = require('../../../common/modulesLoader');
+var clearDatabaseTable = require('../../../common/DBSandbox').clearDatabaseTable;
+
+var constants = require('../../../../helpers/constants');
 
 describe('blocks/process', function () {
 
@@ -18,32 +21,28 @@ describe('blocks/process', function () {
 	var blocksVerify;
 	var accounts;
 	var db;
-	var dbSandbox;
 	var scope;
 	var originalBlockRewardsOffset;
 
 	before(function (done) {
-		dbSandbox = new DBSandbox(modulesLoader.scope.config.db, 'lisk_test_blocks_process');
-		dbSandbox.create(function (err, __db) {
-			modulesLoader.db = __db;
-			db = __db;
-			// Force rewards start at 150-th block
-			originalBlockRewardsOffset = node.constants.rewards.offset;
-			node.constants.rewards.offset = 150;
-			// wait for mem_accounts to be populated
-			node.initApplication(function (err, __scope) {
-				setTimeout(function () {
-					scope = __scope;
-					accounts = __scope.modules.accounts;
-					blocksProcess = __scope.modules.blocks.process;
-					blocksVerify = __scope.modules.blocks.verify;
-					blockLogic = __scope.logic.block;
-					blocks = __scope.modules.blocks;
-					db = __scope.db;
-					done(err);
-				}, 5000);
-			}, {db: db});
+		// Force rewards start at 150-th block
+		originalBlockRewardsOffset = constants.rewards.offset;
+		constants.rewards.offset = 150;
+		application.init({sandbox: {name: 'lisk_test_blocks_process'}}, function (err, scope) {
+			scope = scope;
+			accounts = scope.modules.accounts;
+			blocksProcess = scope.modules.blocks.process;
+			blocksVerify = scope.modules.blocks.verify;
+			blockLogic = scope.logic.block;
+			blocks = scope.modules.blocks;
+			db = scope.db;
+			done(err);
 		});
+	});
+
+	after(function (done) {
+		constants.rewards.offset = originalBlockRewardsOffset;
+		application.cleanup(done);
 	});
 
 	beforeEach(function (done) {
@@ -91,25 +90,6 @@ describe('blocks/process', function () {
 		});
 	});
 
-	after(function (done) {
-		async.every([
-			'blocks where height > 1',
-			'trs where "blockId" != \'6524861224470851795\'',
-			'mem_accounts where address in (\'2737453412992791987L\', \'2896019180726908125L\')',
-			'forks_stat',
-			'votes where "transactionId" = \'17502993173215211070\''
-		], function (table, seriesCb) {
-			clearDatabaseTable(db, modulesLoader.logger, table, seriesCb);
-		}, function (err) {
-			if (err) {
-				done(err);
-			}
-			node.constants.rewards.offset = originalBlockRewardsOffset;
-			dbSandbox.destroy(modulesLoader.logger);
-			node.appCleanup(done);
-		});
-	});
-
 	describe('getCommonBlock()', function () {
 
 		it('should be ok');
@@ -125,7 +105,7 @@ describe('blocks/process', function () {
 				}
 
 				blocks.lastBlock.set(loadedBlock);
-				expect(loadedBlock.height).to.be.equal(2);
+				expect(loadedBlock.height).to.equal(2);
 				done();
 			});
 		});
@@ -137,13 +117,13 @@ describe('blocks/process', function () {
 				}
 
 				blocks.lastBlock.set(loadedBlock);
-				expect(loadedBlock.height).to.be.equal(3);
+				expect(loadedBlock.height).to.equal(3);
 				done();
 			});
 		});
 	});
 
-	describe('loadBlocksOffset({verify: true}) - block/trs errors', function () {
+	describe('loadBlocksOffset({verify: true}) - block/transaction errors', function () {
 
 		it('should load block 4 from db and return blockSignature error', function (done) {
 			blocksProcess.loadBlocksOffset(1, 4, true, function (err, loadedBlock) {
@@ -235,7 +215,7 @@ describe('blocks/process', function () {
 		});
 	});
 
-	describe('loadBlocksOffset({verify: false}) - rerun block/trs errors', function () {
+	describe('loadBlocksOffset({verify: false}) - return block/transaction errors', function () {
 
 		it('should clear fork_stat db table', function (done) {
 			async.every([

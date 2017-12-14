@@ -8,7 +8,7 @@ var rewire  = require('rewire');
 var sinon = require('sinon');
 
 var jobsQueue = require('../../../helpers/jobsQueue');
-var modulesLoader = require('../../common/initModule').modulesLoader;
+var modulesLoader = require('../../common/modulesLoader');
 
 describe('loader', function () {
 
@@ -69,47 +69,47 @@ describe('loader', function () {
 			var peers = [
 				{
 					ip: '1.1.1.1',
-					port: '4000',
+					wsPort: '4000',
 					height: 1
 				},
 				{
 					ip: '4.4.4.4',
-					port: '4000',
+					wsPort: '4000',
 					height: 4
 				},
 				{
 					ip: '3.3.3.3',
-					port: '4000',
+					wsPort: '4000',
 					height: 3
 				},
 				{
 					ip: '2.2.2.2',
-					port: '4000',
+					wsPort: '4000',
 					height: 2
 				}
 			];
 
 			var goodPeers = loaderModule.findGoodPeers(peers);
-			expect(goodPeers).to.have.property('height').equal(HEIGHT_TWO); //good peers - above my height (above and equal 2)
+			expect(goodPeers).to.have.property('height').equal(HEIGHT_TWO); // Good peers - above my height (above and equal 2)
 			expect(goodPeers).to.have.property('peers').to.be.an('array').to.have.lengthOf(3);
 			expect(_.isEqualWith(goodPeers.peers, [
 				{
 					ip: '4.4.4.4',
-					port: '4000',
+					wsPort: '4000',
 					height: 4
 				},
 				{
 					ip: '3.3.3.3',
-					port: '4000',
+					wsPort: '4000',
 					height: 3
 				},
 				{
 					ip: '2.2.2.2',
-					port: '4000',
+					wsPort: '4000',
 					height: 2
 				}
 			], function (a, b) {
-				return a.ip === b.ip &&  a.port === b.port &&  a.height === b.height;
+				return a.ip === b.ip &&  a.wsPort === b.wsPort &&  a.height === b.height;
 			})).to.be.ok;
 		});
 	});

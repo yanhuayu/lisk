@@ -1,7 +1,11 @@
+'use strict';
+
+var apiCodes = require('../helpers/apiCodes.js');
+var ApiError = require('../helpers/apiError.js');
 var DApp = require('../logic/dapp.js');
 var dappCategories = require('../helpers/dappCategories.js');
 var InTransfer = require('../logic/inTransfer.js');
-var OrderBy = require('../helpers/orderBy.js');
+var sortBy = require('../helpers/sort_by.js').sortBy;
 var OutTransfer = require('../logic/outTransfer.js');
 var schema = require('../schema/dapps.js');
 var sql = require('../sql/dapps.js');
@@ -39,11 +43,11 @@ function DApps (cb, scope) {
 		ed: scope.ed,
 		balancesSequence: scope.balancesSequence,
 		logic: {
-			transaction: scope.logic.transaction,
+			transaction: scope.logic.transaction
 		},
 		config: {
-			dapp: scope.config.dapp,
-		},
+			dapp: scope.config.dapp
+		}
 	};
 	self = this;
 
@@ -85,37 +89,21 @@ function DApps (cb, scope) {
 
 // Private methods
 /**
- * Gets record from `dapps` table based on id
- * @private
- * @implements {library.db.query}
- * @param {string} id
- * @param {function} cb
- * @return {setImmediateCallback} error description | row data
- */
-__private.get = function (id, cb) {
-	library.db.query(sql.get, {id: id}).then(function (rows) {
-		if (rows.length === 0) {
-			return setImmediate(cb, 'Application not found');
-		} else {
-			return setImmediate(cb, null, rows[0]);
-		}
-	}).catch(function (err) {
-		library.logger.error(err.stack);
-		return setImmediate(cb, 'DApp#get error');
-	});
-};
-
-/**
  * Gets records from `dapps` table based on filter
  * @private
  * @implements {library.db.query}
  * @param {Object} filter - Could contains type, name, category, link, limit,
- * offset, orderBy
+ * offset, sort
  * @param {function} cb
  * @return {setImmediateCallback} error description | rows data
  */
 __private.list = function (filter, cb) {
 	var params = {}, where = [];
+
+	if (filter.transactionId) {
+		where.push('"transactionId" = ${transactionId}');
+		params.transactionId = filter.transactionId;
+	}
 
 	if (filter.type >= 0) {
 		where.push('"type" = ${type}');
@@ -159,20 +147,20 @@ __private.list = function (filter, cb) {
 		return setImmediate(cb, 'Invalid limit. Maximum is 100');
 	}
 
-	var orderBy = OrderBy(
-		filter.orderBy, {
+	var sort = sortBy(
+		filter.sort, {
 			sortFields: sql.sortFields
 		}
 	);
 
-	if (orderBy.error) {
-		return setImmediate(cb, orderBy.error);
+	if (sort.error) {
+		return setImmediate(cb, sort.error);
 	}
 
 	library.db.query(sql.list({
 		where: where,
-		sortField: orderBy.sortField,
-		sortMethod: orderBy.sortMethod
+		sortField: sort.sortField,
+		sortMethod: sort.sortMethod
 	}), params).then(function (rows) {
 		return setImmediate(cb, null, rows);
 	}).catch(function (err) {
@@ -193,7 +181,7 @@ DApps.prototype.onBind = function (scope) {
 		transactions: scope.transactions,
 		accounts: scope.accounts,
 		peers: scope.peers,
-		sql: scope.sql,
+		sql: scope.sql
 	};
 
 	__private.assetTypes[transactionTypes.IN_TRANSFER].bind(
@@ -222,31 +210,29 @@ DApps.prototype.isLoaded = function () {
  * @todo implement API comments with apidoc.
  * @see {@link http://apidocjs.com/}
  */
-DApps.prototype.internal = {
+DApps.prototype.shared = {
 
-	get: function (param, cb) {
-		__private.get(param.id, function (err, dapp) {
+	/**
+	 * Utility method to get dapps.
+	 *
+	 * @param {Object} parameters - Object of all parameters
+	 * @param {string} parameters.transactionId - Registration transaction ID to query
+	 * @param {string} parameters.name - Name to query - Fuzzy search
+	 * @param {string} parameters.sort - Sort field
+	 * @param {int} parameters.limit - Limit applied to results
+	 * @param {int} parameters.offset - Offset value for results
+	 * @param {function} cb - Callback function
+	 * @return {Array.<Object>}
+	 */
+	getDapps: function (parameters, cb) {
+		__private.list(parameters, function (err, dapps) {
 			if (err) {
-				return setImmediate(cb, null, {success: false, error: err});
+				return setImmediate(cb, new ApiError(err, apiCodes.INTERNAL_SERVER_ERROR));
 			} else {
-				return setImmediate(cb, null, {success: true, dapp: dapp});
+				return setImmediate(cb, null, dapps);
 			}
 		});
-	},
-
-	list: function (query, cb) {
-		__private.list(query, function (err, dapps) {
-			if (err) {
-				return setImmediate(cb, err);
-			} else {
-				return setImmediate(cb, null, {success: true, dapps: dapps});
-			}
-		});
-	},
-
-	categories: function (req, cb) {
-		return setImmediate(cb, null, {success: true, categories: dappCategories});
-	},
+	}
 };
 
 // Shared API
@@ -269,7 +255,6 @@ shared.getGenesis = function (req, cb) {
 		return setImmediate(cb, 'DApp#getGenesis error');
 	});
 };
-
 
 // Export
 module.exports = DApps;

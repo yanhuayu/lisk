@@ -31,12 +31,12 @@ var extend = require('extend');
 var fs = require('fs');
 // var https = require('https');
 var path = require('path');
-var SocketCluster = require('socketcluster').SocketCluster;
+var SocketCluster = require('socketcluster');
 var util = require('util');
 
 var genesisblock = require('./genesisBlock.json');
 var Logger = require('./logger.js');
-var workersController = require('./workersController');
+var workersControllerPath = path.join(__dirname, 'workersController');
 var wsRPC = require('./api/ws/rpc/wsRPC').wsRPC;
 
 var AppConfig = require('./helpers/config.js');
@@ -44,6 +44,7 @@ var git = require('./helpers/git.js');
 var httpApi = require('./helpers/httpApi.js');
 var Sequence = require('./helpers/sequence.js');
 var z_schema = require('./helpers/z_schema.js');
+var swagger = require('./config/swagger');
 
 process.stdin.resume();
 
@@ -61,7 +62,7 @@ if (typeof gc !== 'undefined') {
 }
 
 /**
- * @property {object} - The default list of configuration options. Can be updated by CLI.
+ * @property {Object} - The default list of configuration options. Can be updated by CLI.
  * @default 'config.json'
  */
 var appConfig = AppConfig(require('./package.json'));
@@ -73,66 +74,40 @@ process.env.TOP = appConfig.topAccounts;
  * The config object to handle lisk modules and lisk api.
  * It loads `modules` and `api` folders content.
  * Also contains db configuration from config.json.
- * @property {object} db - Config values for database.
- * @property {object} modules - `modules` folder content.
- * @property {object} api - `api/http` folder content.
+ * @property {Object} db - Config values for database.
+ * @property {Object} modules - `modules` folder content.
+ * @property {Object} api - `api/http` folder content.
  */
 var config = {
+	root: path.dirname(__filename),
 	db: appConfig.db,
 	cache: appConfig.redis,
 	cacheEnabled: appConfig.cacheEnabled,
 	modules: {
 		accounts: './modules/accounts.js',
-		transactions: './modules/transactions.js',
 		blocks: './modules/blocks.js',
-		signatures: './modules/signatures.js',
-		transport: './modules/transport.js',
-		loader: './modules/loader.js',
-		system: './modules/system.js',
-		peers: './modules/peers.js',
-		delegates: './modules/delegates.js',
-		multisignatures: './modules/multisignatures.js',
+		cache: './modules/cache.js',
 		dapps: './modules/dapps.js',
-		cache: './modules/cache.js'
+		delegates: './modules/delegates.js',
+		loader: './modules/loader.js',
+		multisignatures: './modules/multisignatures.js',
+		node: './modules/node.js',
+		peers: './modules/peers.js',
+		system: './modules/system.js',
+		signatures: './modules/signatures.js',
+		transactions: './modules/transactions.js',
+		transport: './modules/transport.js',
+		voters: './modules/voters'
 	},
 	api: {
-		accounts: {
-			http: './api/http/accounts.js'
-		},
-		blocks: {
-			http: './api/http/blocks.js'
-		},
-		dapps: {
-			http: './api/http/dapps.js'
-		},
-		delegates: {
-			http: './api/http/delegates.js'
-		},
-		loader: {
-			http: './api/http/loader.js'
-		},
-		multisignatures: {
-			http: './api/http/multisignatures.js'
-		},
-		peers: {
-			http: './api/http/peers.js'
-		},
-		signatures: {
-			http: './api/http/signatures.js'
-		},
-		transactions: {
-			http: './api/http/transactions.js'
-		},
-		transport: {
-			ws: './api/ws/transport.js'
-		}
+		transport: { ws: './api/ws/transport.js' }
 	}
 };
 
 /**
  * Logger holder so we can log with custom functionality.
  * The Object is initialized here and pass to others as parameter.
- * @property {object} - Logger instance.
+ * @property {Object} - Logger instance.
  */
 var logger = new Logger({
 	echo: appConfig.consoleLogLevel,
@@ -150,7 +125,7 @@ catch (err) {
 
 /**
  * Creates the express server and loads all the Modules and logic.
- * @property {object} - Domain instance.
+ * @property {Object} - Domain instance.
  */
 var d = require('domain').create();
 
@@ -213,15 +188,13 @@ d.run(function() {
 		/**
 		 * Once config is completed, creates app, http & https servers & sockets with express.
 		 * @method network
-		 * @param {object} scope - The results from current execution,
+		 * @param {Object} scope - The results from current execution,
 		 * at leats will contain the required elements.
 		 * @param {nodeStyleCallback} cb - Callback function with created Object:
 		 * `{express, app, server, io, https, https_io}`.
 		 */
 		network: ['config', function(scope, cb) {
 			var express = require('express');
-			var compression = require('compression');
-			var cors = require('cors');
 			var app = express();
 
 			if (appConfig.coverage) {
@@ -231,13 +204,9 @@ d.run(function() {
 				app.use('/coverage', im.createHandler());
 			}
 
-			require('./helpers/request-limiter')(app, appConfig);
-
-			app.use(compression({
-				level: 9
-			}));
-			app.use(cors());
-			app.options('*', cors());
+			if (appConfig.trustProxy) {
+				app.enable('trust proxy');
+			}
 
 			var server = require('http').createServer(app);
 			var io = require('socket.io')(server);
@@ -269,10 +238,10 @@ d.run(function() {
 		webSocket: ['config', 'connect', 'logger', 'network', function(scope, cb) {
 			var webSocketConfig = {
 				workers: scope.config.wsWorkers,
-				port: scope.config.port,
+				port: scope.config.wsPort,
 				wsEngine: 'uws',
 				appName: 'lisk',
-				workerController: workersController.path,
+				workerController: workersControllerPath,
 				perMessageDeflate: false,
 				secretKey: 'liskSecretKey',
 				pingInterval: 5000,
@@ -301,7 +270,7 @@ d.run(function() {
 				version: scope.config.version,
 				minVersion: scope.config.minVersion,
 				nethash: scope.config.nethash,
-				port: scope.config.port,
+				port: scope.config.wsPort,
 				nonce: scope.config.nonce
 			};
 
@@ -347,7 +316,7 @@ d.run(function() {
 		 * Once config, genesisblock, logger, build and network are completed,
 		 * adds configuration to `network.app`.
 		 * @method connect
-		 * @param {object} scope - The results from current execution,
+		 * @param {Object} scope - The results from current execution,
 		 * at leats will contain the required elements.
 		 * @param {function} cb - Callback function.
 		 */
@@ -356,9 +325,9 @@ d.run(function() {
 			var bodyParser = require('body-parser');
 			var methodOverride = require('method-override');
 			var queryParser = require('express-query-int');
-			var randomString = require('randomstring');
+			var randomstring = require('randomstring');
 
-			scope.config.nonce = randomString.generate(16);
+			scope.config.nonce = randomstring.generate(16);
 			scope.network.app.use(require('express-domain-middleware'));
 			scope.network.app.use(bodyParser.raw({
 				limit: '2mb'
@@ -417,7 +386,11 @@ d.run(function() {
 			cb();
 		}],
 
-		ed: function(cb) {
+		swagger: ['connect', 'modules', 'logger', 'cache', function (scope, cb) {
+			swagger(scope.network.app, config, scope.logger, scope, cb);
+		}],
+
+		ed: function (cb) {
 			cb(null, require('./helpers/ed.js'));
 		},
 
@@ -467,7 +440,7 @@ d.run(function() {
 		 * Once db, bus, schema and genesisblock are completed,
 		 * loads transaction, block, account and peers from logic folder.
 		 * @method logic
-		 * @param {object} scope - The results from current execution,
+		 * @param {Object} scope - The results from current execution,
 		 * at leats will contain the required elements.
 		 * @param {function} cb - Callback function.
 		 */
@@ -517,7 +490,7 @@ d.run(function() {
 		 * dbSequence, balancesSequence, db and logic are completed,
 		 * loads modules from `modules` folder using `config.modules`.
 		 * @method modules
-		 * @param {object} scope - The results from current execution,
+		 * @param {Object} scope - The results from current execution,
 		 * at leats will contain the required elements.
 		 * @param {nodeStyleCallback} cb - Callback function with resulted load.
 		 */
@@ -554,7 +527,7 @@ d.run(function() {
 		 * Loads api from `api` folder using `config.api`, once modules, logger and
 		 * network are completed.
 		 * @method api
-		 * @param {object} scope - The results from current execution,
+		 * @param {Object} scope - The results from current execution,
 		 * at leats will contain the required elements.
 		 * @param {function} cb - Callback function.
 		 */
@@ -588,7 +561,7 @@ d.run(function() {
 		 * Once 'ready' is completed, binds and listens for connections on the
 		 * specified host and port for `scope.network.server`.
 		 * @method listen
-		 * @param {object} scope - The results from current execution,
+		 * @param {Object} scope - The results from current execution,
 		 * at leats will contain the required elements.
 		 * @param {nodeStyleCallback} cb - Callback function with `scope.network`.
 		 */
