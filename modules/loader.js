@@ -6,15 +6,12 @@ var exceptions = require('../helpers/exceptions');
 var ip = require('ip');
 var jobsQueue = require('../helpers/jobsQueue.js');
 var Peer = require('../logic/peer.js');
-var schema = require('../schema/loader.js');
 var slots = require('../helpers/slots.js');
-var sql = require('../sql/loader.js');
 
 require('colors');
 
 // Private fields
-var modules, library, self, __private = {},
-	shared = {};
+var modules, definitions, library, self, __private = {}, shared = {};
 
 __private.loaded = false;
 __private.isActive = false;
@@ -180,9 +177,8 @@ __private.loadSignatures = function(cb) {
 						state: Peer.STATE.DISCONNECTED
 					});
 					return setImmediate(waterCb, err);
-				}
-				else {
-					library.schema.validate(res, schema.loadSignatures, function(err) {
+				} else {
+					library.schema.validate(res, definitions.WSSignaturesResponse, function (err) {
 						return setImmediate(waterCb, err, res.signatures);
 					});
 				}
@@ -245,7 +241,7 @@ __private.loadTransactions = function(cb) {
 					});
 					return setImmediate(waterCb, err);
 				}
-				library.schema.validate(res, schema.loadTransactions, function(err) {
+				library.schema.validate(res, definitions.WSTransactionsResponse, function (err) {
 					if (err) {
 						return setImmediate(waterCb, err[0].message);
 					}
@@ -402,11 +398,11 @@ __private.loadBlockChain = function() {
 
 	function checkMemTables(t) {
 		var promises = [
-			t.one(sql.countBlocks),
-			t.query(sql.getGenesisBlock),
-			t.one(sql.countMemAccounts),
-			t.query(sql.validateMemBalances),
-			t.query(sql.getRoundsExceptions)
+			library.db.blocks.count(t),
+			library.db.blocks.getGenesisBlock(t),
+			library.db.accounts.countMemAccounts(t),
+			library.db.accounts.validateMemBalances(t),
+			library.db.rounds.getExceptions(t),
 		];
 
 		return t.batch(promises);
@@ -505,9 +501,9 @@ __private.loadBlockChain = function() {
 
 		function updateMemAccounts(t) {
 			var promises = [
-				t.none(sql.updateMemAccounts),
-				t.query(sql.getOrphanedMemAccounts),
-				t.query(sql.getDelegates)
+				library.db.accounts.updateMemAccounts(t),
+				library.db.accounts.getOrphanedMemAccounts(t),
+				library.db.accounts.getDelegates(t),
 			];
 
 			return t.batch(promises);
@@ -899,6 +895,8 @@ Loader.prototype.onBind = function(scope) {
 		multisignatures: scope.multisignatures,
 		system: scope.system,
 	};
+
+	definitions = scope.swagger.definitions;
 
 	__private.loadBlockChain();
 };

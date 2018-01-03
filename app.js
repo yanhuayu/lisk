@@ -45,6 +45,7 @@ var httpApi = require('./helpers/httpApi.js');
 var Sequence = require('./helpers/sequence.js');
 var z_schema = require('./helpers/z_schema.js');
 var swagger = require('./config/swagger');
+var swaggerHelper = require('./helpers/swagger');
 
 process.stdin.resume();
 
@@ -181,8 +182,8 @@ d.run(function() {
 			});
 		},
 
-		schema: function(cb) {
-			cb(null, new z_schema());
+		schema: function (cb) {
+			cb(null, swaggerHelper.getValidator());
 		},
 
 		/**
@@ -342,7 +343,7 @@ d.run(function() {
 			}));
 			scope.network.app.use(methodOverride());
 
-			var ignore = ['id', 'name', 'lastBlockId', 'blockId', 'transactionId', 'address', 'recipientId', 'senderId', 'previousBlock'];
+			var ignore = ['id', 'name', 'username', 'blockId', 'transactionId', 'address', 'recipientAddress', 'senderAddress'];
 
 			scope.network.app.use(queryParser({
 				parser: function(value, radix, name) {
@@ -549,7 +550,9 @@ d.run(function() {
 			cb();
 		}],
 
-		ready: ['modules', 'bus', 'logic', function(scope, cb) {
+		ready: ['swagger', 'modules', 'bus', 'logic', function (scope, cb) {
+			scope.modules.swagger = scope.swagger;
+
 			// Fire onBind event in every module
 			scope.bus.message('bind', scope.modules);
 
@@ -628,9 +631,8 @@ d.run(function() {
 			 */
 			process.once('cleanup', function() {
 				scope.logger.info('Cleaning up...');
-				scope.socketCluster.killWorkers();
-				scope.socketCluster.killBrokers();
-				async.eachSeries(modules, function(module, cb) {
+				scope.socketCluster.destroy();
+				async.eachSeries(modules, function (module, cb) {
 					if (typeof(module.cleanup) === 'function') {
 						module.cleanup(cb);
 					}
