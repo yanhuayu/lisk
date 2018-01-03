@@ -12,22 +12,5 @@
 			"es5", "es2015.collection", "es2015.promise", "dom", "es2016.array.include"
 		]
 	},
-	"include": [
-		"api/**/*.js",
-		"helpers/**/*.js",
-		"logic/**/*.js",
-		"schema/**/*.js",
-		"sql/**/*.js",
-		"tasks/**/*.js",
-		"test/**/*.js"
-	],
-	"exclude": ["node_modules"],
-	"typeAcquisition": {
-		"include": [
-			"vue",
-			"vuex",
-			"vue-router",
-			"axios"
-		]
-	}
+	"exclude": ["node_modules"]
 }
