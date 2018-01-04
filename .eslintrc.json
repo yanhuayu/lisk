@@ -1,9 +1,13 @@
 {
+	"root": true,
 	"parserOptions": {
 		"ecmaVersion": 5,
 		"sourceType": "module"
 	},
 	"rules": {
+		"import/extensions": ["error", "always", {
+			"js": "never"
+		}],
 		"indent": [
 			"error",
 			"tab",
@@ -64,7 +68,9 @@
 	},
 	"env": {
 		"browser": true,
-		"node": true
+		"node": true,
+		"commonjs": true,
+		"es6": true
 	},
 	"globals": {
 		"it": true,
@@ -75,5 +81,4 @@
 		"afterEach": true
 	},
 	"plugins": []
-
 }
