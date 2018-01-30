@@ -16,7 +16,7 @@
     "port": 5432,
     "database": "lisk_main",
     "user": "",
-    "password": "password",
+    "password": "1988422",
     "min": 10,
     "max": 95,
     "poolIdleTimeout": 30000,
