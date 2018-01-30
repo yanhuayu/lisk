@@ -1,12 +1,22 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../../functional.js');
-
+require('../../functional.js');
 var lisk = require('lisk-js');
-var expect = require('chai').expect;
 var Promise = require('bluebird');
 
-var _ = test._;
 var accountFixtures = require('../../../fixtures/accounts');
 
 var randomUtil = require('../../../common/utils/random');
@@ -59,7 +69,7 @@ describe('GET /dapps', function () {
 
 		it('should return all results', function () {
 			return dappsEndpoint.makeRequest({}, 200).then(function (res) {
-				res.body.data.length.should.be.at.least(registeredDappsAmount);
+				expect(res.body.data.length).to.be.at.least(registeredDappsAmount);
 			});
 		});
 	});
@@ -94,14 +104,14 @@ describe('GET /dapps', function () {
 
 			it('using unknown id should return an empty array', function () {
 				return dappsEndpoint.makeRequest({transactionId: '8713095156789756398'}, 200).then(function (res) {
-					res.body.data.should.be.empty;
+					expect(res.body.data).to.be.empty;
 				});
 			});
 
 			it('using known ids should be ok', function () {
 				return Promise.map(transactionsToWaitFor, function (transaction) {
 					return dappsEndpoint.makeRequest({transactionId: transaction}, 200).then(function (res) {
-						res.body.data[0].transactionId.should.be.eql(transaction);
+						expect(res.body.data[0].transactionId).to.be.eql(transaction);
 					});
 				});
 			});
@@ -123,21 +133,21 @@ describe('GET /dapps', function () {
 
 			it('using string = "Unknown" should be ok', function () {
 				return dappsEndpoint.makeRequest({name: 'Unknown'}, 200).then(function (res) {
-					res.body.data.should.be.empty;
+					expect(res.body.data).to.be.empty;
 				});
 			});
 
 			it('using registered dapp1 name should be ok', function () {
 				return dappsEndpoint.makeRequest({name: dapp1.name}, 200).then(function (res) {
-					res.body.data.should.have.length(1);
-					res.body.data[0].name.should.be.eql(dapp1.name);
+					expect(res.body.data).to.have.length(1);
+					expect(res.body.data[0].name).to.be.eql(dapp1.name);
 				});
 			});
 
 			it('using registered dapp2 name should be ok', function () {
 				return dappsEndpoint.makeRequest({name: dapp2.name}, 200).then(function (res) {
-					res.body.data.should.have.length(1);
-					res.body.data[0].name.should.be.eql(dapp2.name);
+					expect(res.body.data).to.have.length(1);
+					expect(res.body.data[0].name).to.be.eql(dapp2.name);
 				});
 			});
 		});
@@ -158,13 +168,13 @@ describe('GET /dapps', function () {
 
 			it('using 1 should be ok', function () {
 				return dappsEndpoint.makeRequest({limit: 1}, 200).then(function (res) {
-					res.body.data.should.have.length(1);
+					expect(res.body.data).to.have.length(1);
 				});
 			});
 
 			it('using 100 should be ok', function () {
 				return dappsEndpoint.makeRequest({limit: 100}, 200).then(function (res) {
-					res.body.data.should.have.length.at.most(100);
+					expect(res.body.data).to.have.length.at.most(100);
 				});
 			});
 		});
@@ -179,17 +189,17 @@ describe('GET /dapps', function () {
 
 			it('using offset 0 should be ok', function () {
 				return dappsEndpoint.makeRequest({limit: 1, offset: 0}, 200).then(function (res) {
-					res.body.data.should.have.length(1);
-					res.body.meta.limit.should.be.eql(1);
-					res.body.meta.offset.should.be.eql(0);
+					expect(res.body.data).to.have.length(1);
+					expect(res.body.meta.limit).to.be.eql(1);
+					expect(res.body.meta.offset).to.be.eql(0);
 				});
 			});
 
 			it('using offset 1 should be ok', function () {
 				return dappsEndpoint.makeRequest({limit: 1, offset: 1}, 200).then(function (res) {
-					res.body.data.should.have.length(1);
-					res.body.meta.limit.should.be.eql(1);
-					res.body.meta.offset.should.be.eql(1);
+					expect(res.body.data).to.have.length(1);
+					expect(res.body.meta.limit).to.be.eql(1);
+					expect(res.body.meta.offset).to.be.eql(1);
 				});
 			});
 		});
@@ -198,8 +208,8 @@ describe('GET /dapps', function () {
 
 			it('using offset 0 should return different result than offset 1', function () {
 				return dappsEndpoint.makeRequests([{offset: 0}, {offset: 1}], 200).then(function (responses) {
-					responses.should.have.length(2);
-					responses[0].body.data[0].name.should.not.equal(responses[1].body.data[0].name);
+					expect(responses).to.have.length(2);
+					expect(responses[0].body.data[0].name).to.not.equal(responses[1].body.data[0].name);
 				});
 			});
 		});
@@ -266,13 +276,13 @@ describe('GET /dapps', function () {
 
 			it('using empty string should return all results', function () {
 				return dappsEndpoint.makeRequest({unknown: ''}, 200).then(function (res) {
-					res.body.data.should.have.length.at.least(registeredDappsAmount);
+					expect(res.body.data).to.have.length.at.least(registeredDappsAmount);
 				});
 			});
 
 			it('using "unknown" should return all results', function () {
 				return dappsEndpoint.makeRequest({unknown: 'unknown'}, 200).then(function (res) {
-					res.body.data.should.have.length.at.least(registeredDappsAmount);
+					expect(res.body.data).to.have.length.at.least(registeredDappsAmount);
 				});
 			});
 		});

@@ -1,12 +1,21 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var chai = require('chai');
-var should = chai.should();
 var supertest = require('supertest');
 var Promise = require('bluebird');
-
-var test = require('../test');
-var _ = test._;
 
 var swaggerHelper = require('../../helpers/swagger');
 
@@ -19,7 +28,7 @@ validator.options.assumeAdditional = true;
 
 // Extend Chai assertion with a new method validResponse
 // to facilitate the validation of swagger response body
-// e.g. res.body.should.be.validResponse
+// e.g. expect(res.body).to.be.validResponse
 chai.use(function (chai, utils) {
 	chai.Assertion.addMethod('validResponse', function (responsePath) {
 		var result = validator.validate(utils.flag(this,'object'), apiSpec, {schemaPath: responsePath});
@@ -154,7 +163,7 @@ SwaggerTestSpec.prototype.makeRequest = function (parameters, responseCode){
 			}
 		});
 
-		var req = supertest(test.baseUrl);
+		var req = supertest(__testContext.baseUrl);
 
 		if (self.method === 'post') {
 			req = req.post(callPath);
@@ -177,29 +186,29 @@ SwaggerTestSpec.prototype.makeRequest = function (parameters, responseCode){
 			req = req.send(post);
 		}
 
-		test.debug(['> URI:'.grey, req.method, req.url].join(' '));
+		__testContext.debug(['> URI:'.grey, req.method, req.url].join(' '));
 
 		if(!_.isEmpty(query)) {
-			test.debug(['> Query:'.grey, JSON.stringify(query)].join(' '));
+			__testContext.debug(['> Query:'.grey, JSON.stringify(query)].join(' '));
 		}
 		if(!_.isEmpty(post)) {
-			test.debug(['> Data:'.grey, JSON.stringify(post)].join(' '));
+			__testContext.debug(['> Data:'.grey, JSON.stringify(post)].join(' '));
 		}
 		return req;
 	}).then(function (res) {
 
-		test.debug('> Response:'.grey, res.statusCode, JSON.stringify(res.body));
+		__testContext.debug('> Response:'.grey, res.statusCode, JSON.stringify(res.body));
 
 		var expectedResponseCode = responseCode || self.responseCode;
 
-		res.statusCode.should.be.eql(expectedResponseCode);
-		res.headers['content-type'].should.match(/json/);
-		res.body.should.be.validResponse(self.getResponseSpecPath(expectedResponseCode));
+		expect(res.statusCode).to.be.eql(expectedResponseCode);
+		expect(res.headers['content-type']).to.match(/json/);
+		expect(res.body).to.be.validResponse(self.getResponseSpecPath(expectedResponseCode));
 
 		return res;
 	})
 		.catch(function (eror){
-			test.debug('> Response Error:'.grey, JSON.stringify((validator.getLastErrors())));
+			__testContext.debug('> Response Error:'.grey, JSON.stringify((validator.getLastErrors())));
 			throw eror;
 		});
 };

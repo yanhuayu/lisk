@@ -1,15 +1,27 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var express = require('express');
 var path = require('path');
 var randomstring = require('randomstring');
-var _ = require('lodash');
 var async = require('async');
 
 var dirname = path.join(__dirname, '..', '..');
 var config = require(path.join(dirname, '/test/data/config.json'));
 var Sequence = require(path.join(dirname, '/helpers', 'sequence.js'));
-var database = require(path.join(dirname, '/helpers', 'database.js'));
+var database = require(path.join(dirname, '/db'));
 var genesisblock = require(path.join(dirname, '/test/data/genesisBlock.json'));
 var Logger = require(dirname + '/logger.js');
 
@@ -183,6 +195,7 @@ var modulesLoader = new function () {
 			{loader: require('../../modules/loader')},
 			{multisignatures: require('../../modules/multisignatures')},
 			{peers: require('../../modules/peers')},
+			{rounds: require('../../modules/rounds')},
 			{signatures: require('../../modules/signatures')},
 			{system: require('../../modules/system')},
 			{transactions: require('../../modules/transactions')},
@@ -222,13 +235,12 @@ var modulesLoader = new function () {
 		if (this.db) {
 			return cb(null, this.db);
 		}
-		database.connect(this.scope.config.db, this.logger, function (err, db) {
-			if (err) {
-				return cb(err);
-			}
-			this.db = db;
-			cb(null, this.db);
-		}.bind(this));
+		database.connect(this.scope.config.db, this.logger)
+			.then(db => {
+				this.db = db;
+				cb(null, db);
+			})
+			.catch(err => cb(err));
 	};
 
 	/**

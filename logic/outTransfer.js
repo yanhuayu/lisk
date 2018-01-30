@@ -1,7 +1,21 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var constants = require('../helpers/constants.js');
 var slots = require('../helpers/slots.js');
+var milestones = require('../helpers/milestones.js');
 
 // Private fields
 var modules, library, __private = {};
@@ -31,9 +45,10 @@ function OutTransfer (db, schema, logger) {
  * Binds input modules to private variable module.
  * @param {Accounts} accounts
  */
-OutTransfer.prototype.bind = function (accounts) {
+OutTransfer.prototype.bind = function (accounts, blocks) {
 	modules = {
 		accounts: accounts,
+		blocks: blocks
 	};
 };
 
@@ -55,6 +70,11 @@ OutTransfer.prototype.calculateFee = function (transaction, sender) {
  * @return {setImmediateCallback} errors messages | transaction
  */
 OutTransfer.prototype.verify = function (transaction, sender, cb) {
+	var lastBlock = modules.blocks.lastBlock.get();
+	if (lastBlock.height >= milestones.disableDappTransfers) {
+		return setImmediate(cb, 'Transaction type ' + transaction.type + ' is frozen');
+	}
+
 	if (!transaction.recipientId) {
 		return setImmediate(cb, 'Invalid recipient');
 	}
@@ -88,8 +108,8 @@ OutTransfer.prototype.verify = function (transaction, sender, cb) {
  * @return {setImmediateCallback} errors messages | transaction
  */
 OutTransfer.prototype.process = function (transaction, sender, cb) {
-	library.db.dapps.countByTransactionId(transaction.asset.outTransfer.dappId).then(function (row) {
-		if (row.count === 0) {
+	library.db.dapps.countByTransactionId(transaction.asset.outTransfer.dappId).then(function (count) {
+		if (count === 0) {
 			return setImmediate(cb, 'Application not found: ' + transaction.asset.outTransfer.dappId);
 		}
 
@@ -97,8 +117,8 @@ OutTransfer.prototype.process = function (transaction, sender, cb) {
 			return setImmediate(cb, 'Transaction is already processed: ' + transaction.asset.outTransfer.transactionId);
 		}
 
-		library.db.dapps.countByOutTransactionId(transaction.asset.outTransfer.transactionId).then(function (row) {
-			if (row.count > 0) {
+		library.db.dapps.countByOutTransactionId(transaction.asset.outTransfer.transactionId).then(function (count) {
+			if (count > 0) {
 				return setImmediate(cb, 'Transaction is already confirmed: ' + transaction.asset.outTransfer.transactionId);
 			} else {
 				return setImmediate(cb, null, transaction);
@@ -147,7 +167,7 @@ OutTransfer.prototype.getBytes = function (transaction) {
  * @param {function} cb - Callback function
  * @return {setImmediateCallback} error, cb
  */
-OutTransfer.prototype.apply = function (transaction, block, sender, cb) {
+OutTransfer.prototype.apply = function (transaction, block, sender, cb, tx) {
 	__private.unconfirmedOutTansfers[transaction.asset.outTransfer.transactionId] = false;
 
 	modules.accounts.setAccountAndGet({address: transaction.recipientId}, function (err, recipient) {
@@ -163,8 +183,8 @@ OutTransfer.prototype.apply = function (transaction, block, sender, cb) {
 			round: slots.calcRound(block.height)
 		}, function (err) {
 			return setImmediate(cb, err);
-		});
-	});
+		}, tx);
+	}, tx);
 };
 
 /**
@@ -206,7 +226,7 @@ OutTransfer.prototype.undo = function (transaction, block, sender, cb) {
  * @param {function} cb
  * @return {setImmediateCallback} cb
  */
-OutTransfer.prototype.applyUnconfirmed = function (transaction, sender, cb) {
+OutTransfer.prototype.applyUnconfirmed = function (transaction, sender, cb, tx) {
 	__private.unconfirmedOutTansfers[transaction.asset.outTransfer.transactionId] = true;
 	return setImmediate(cb);
 };
@@ -218,7 +238,7 @@ OutTransfer.prototype.applyUnconfirmed = function (transaction, sender, cb) {
  * @param {function} cb
  * @return {setImmediateCallback} cb
  */
-OutTransfer.prototype.undoUnconfirmed = function (transaction, sender, cb) {
+OutTransfer.prototype.undoUnconfirmed = function (transaction, sender, cb, tx) {
 	__private.unconfirmedOutTansfers[transaction.asset.outTransfer.transactionId] = false;
 	return setImmediate(cb);
 };
@@ -278,32 +298,6 @@ OutTransfer.prototype.dbRead = function (raw) {
 
 		return {outTransfer: outTransfer};
 	}
-};
-
-OutTransfer.prototype.dbTable = 'outtransfer';
-
-OutTransfer.prototype.dbFields = [
-	'dappId',
-	'outTransactionId',
-	'transactionId'
-];
-
-/**
- * Creates db operation object to 'outtransfer' table based on
- * outTransfer data.
- * @param {transaction} transaction
- * @return {Object[]} table, fields, values.
- */
-OutTransfer.prototype.dbSave = function (transaction) {
-	return {
-		table: this.dbTable,
-		fields: this.dbFields,
-		values: {
-			dappId: transaction.asset.outTransfer.dappId,
-			outTransactionId: transaction.asset.outTransfer.transactionId,
-			transactionId: transaction.id
-		}
-	};
 };
 
 /**

@@ -1,8 +1,22 @@
-var expect = require('chai').expect;
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
+'use strict';
+
+require('../../functional.js');
 var swaggerEndpoint = require('../../../common/swaggerSpec');
 var Promise = require('bluebird');
 
-var test = require('../../functional.js');
 var randomUtil = require('../../../common/utils/random');
 var accountFixtures = require('../../../fixtures/accounts');
 var modulesLoader = require('../../../common/modulesLoader');
@@ -18,7 +32,7 @@ describe('cached endpoints', function () {
 	var getJsonForKeyPromise;
 
 	before(function (done) {
-		test.config.cacheEnabled = true;
+		__testContext.config.cacheEnabled = true;
 		modulesLoader.initCache(function (err, __cache) {
 			cache = __cache;
 			getJsonForKeyPromise = Promise.promisify(cache.getJsonForKey);
@@ -40,14 +54,14 @@ describe('cached endpoints', function () {
 		cache.quit(done);
 	});
 
-	describe('GET /transactions', function () { 
+	describe('GET /transactions', function () {
 
 		var transactionsEndpoint = new swaggerEndpoint('GET /transactions');
 		var account = randomUtil.account();
 
 		it('cache transactions by the url and parameters when response is a success', function () {
 			var params = {
-				'senderAddress': accountFixtures.genesis.address,
+				'senderId': accountFixtures.genesis.address,
 			};
 
 			return transactionsEndpoint.makeRequest(params, 200).then(function (res) {
@@ -96,7 +110,7 @@ describe('cached endpoints', function () {
 					});
 				}));
 			}).then(function (responses) {
-				responses.should.deep.include(initialResponse.body);
+				expect(responses).to.deep.include(initialResponse.body);
 			});
 		});
 
@@ -130,7 +144,7 @@ describe('cached endpoints', function () {
 					});
 				}));
 			}).then(function (responses) {
-				responses.should.deep.include(initialResponse.body);
+				expect(responses).to.deep.include(initialResponse.body);
 			}).then(function () {
 				return waitForBlocksPromise(1);
 			}).then(function () {
@@ -145,7 +159,7 @@ describe('cached endpoints', function () {
 
 		var delegatesEndpoint = new swaggerEndpoint('GET /delegates');
 		var params = {
-			username: 'genesis_89' 
+			username: 'genesis_89'
 		};
 
 		it('should cache delegates when response is successful', function () {
@@ -155,7 +169,7 @@ describe('cached endpoints', function () {
 						return getJsonForKeyPromise(res.req.path);
 					});
 				})).then(function (responses) {
-					responses.should.deep.include(res.body);
+					expect(responses).to.deep.include(res.body);
 				});
 			});
 		});
@@ -186,7 +200,7 @@ describe('cached endpoints', function () {
 						return getJsonForKeyPromise(res.req.path);
 					});
 				})).then(function (responses) {
-					responses.should.deep.include(res.body);
+					expect(responses).to.deep.include(res.body);
 					return onNewRoundPromise().then(function () {
 						return getJsonForKeyPromise(urlPath).then(function (result) {
 							expect(result).to.not.exist;
@@ -197,4 +211,3 @@ describe('cached endpoints', function () {
 		});
 	});
 });
-

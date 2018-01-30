@@ -1,12 +1,20 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';/*eslint*/
 
 var crypto = require('crypto');
-var _  = require('lodash');
-
-var expect = require('chai').expect;
 var rewire = require('rewire');
-var sinon   = require('sinon');
-
 
 var modulesLoader = require('../../common/modulesLoader');
 
@@ -26,7 +34,7 @@ var validSender = {
 	username: 'mix8',
 	publicKey: '5ff3c8f4be105953301e505d23a6e1920da9f72dc8dfd7babe1481b662f2b081',
 	address: '4835566122337813671L',
-	secondPublicKey: 'ebfb1157f9f9ad223b1c7468b0d643663ec5a34ac7a6d557243834ae604d72b7' 
+	secondPublicKey: 'ebfb1157f9f9ad223b1c7468b0d643663ec5a34ac7a6d557243834ae604d72b7'
 };
 
 var senderHash = crypto.createHash('sha256').update(validSender.password, 'utf8').digest();
@@ -71,7 +79,7 @@ var rawValidTransaction = {
 	t_SignSignature: null,
 	t_signatures: null,
 	confirmations: 4,
-	s_publicKey: 'ebfb1157f9f9ad223b1c7468b0d643663ec5a34ac7a6d557243834ae604d72b7' 
+	s_publicKey: 'ebfb1157f9f9ad223b1c7468b0d643663ec5a34ac7a6d557243834ae604d72b7'
 };
 
 describe('signature', function () {
@@ -86,9 +94,9 @@ describe('signature', function () {
 			id: '9314232245035524467',
 			height: 1
 		};
-		transactionMock = sinon.mock({});
+		transactionMock = sinonSandbox.mock({});
 		accountsMock = {
-			setAccountAndGet: sinon.mock().callsArg(1)
+			setAccountAndGet: sinonSandbox.mock().callsArg(1)
 		};
 		signature = new Signature(modulesLoader.scope.schema, modulesLoader.scope.logger);
 		signature.bind(accountsMock);
@@ -306,19 +314,19 @@ describe('signature', function () {
 			});
 
 			it('should call modules.accounts.setAccountAndGet with address = sender.address', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({address: sender.address}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({address: sender.address}))).to.be.true;
 			});
 
 			it('should call modules.accounts.setAccountAndGet with secondSignature = 1', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({secondSignature: 1}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({secondSignature: 1}))).to.be.true;
 			});
 
 			it('should call modules.accounts.setAccountAndGet with u_secondSignature = 0', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({u_secondSignature: 0}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({u_secondSignature: 0}))).to.be.true;
 			});
 
 			it('should call modules.accounts.setAccountAndGet with secondPublicKey = validTransaction.asset.signature.publicKey', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({secondPublicKey: validTransaction.asset.signature.publicKey}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({secondPublicKey: validTransaction.asset.signature.publicKey}))).to.be.true;
 			});
 		});
 
@@ -333,19 +341,19 @@ describe('signature', function () {
 			});
 
 			it('should call modules.accounts.setAccountAndGet with address = sender.address', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({address: sender.address}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({address: sender.address}))).to.be.true;
 			});
 
 			it('should call modules.accounts.setAccountAndGet with secondSignature = 0', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({secondSignature: 0}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({secondSignature: 0}))).to.be.true;
 			});
 
 			it('should call modules.accounts.setAccountAndGet with u_secondSignature = 1', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({u_secondSignature: 1}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({u_secondSignature: 1}))).to.be.true;
 			});
 
 			it('should call modules.accounts.setAccountAndGet with secondPublicKey = null', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({secondPublicKey: null}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({secondPublicKey: null}))).to.be.true;
 			});
 		});
 
@@ -389,11 +397,11 @@ describe('signature', function () {
 			});
 
 			it('should call modules.accounts.setAccountAndGet with address = sender.address', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({address: sender.address}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({address: sender.address}))).to.be.true;
 			});
 
 			it('should call modules.accounts.setAccountAndGet with u_secondSignature = 1', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({u_secondSignature: 1}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({u_secondSignature: 1}))).to.be.true;
 			});
 		});
 
@@ -408,11 +416,11 @@ describe('signature', function () {
 			});
 
 			it('should call modules.accounts.setAccountAndGet with address = sender.address', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({address: sender.address}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({address: sender.address}))).to.be.true;
 			});
 
 			it('should call modules.accounts.setAccountAndGet with u_secondSignature = 0', function () {
-				expect(accountsMock.setAccountAndGet.calledWith(sinon.match({u_secondSignature: 0}))).to.be.true;
+				expect(accountsMock.setAccountAndGet.calledWith(sinonSandbox.match({u_secondSignature: 0}))).to.be.true;
 			});
 		});
 
@@ -425,7 +433,7 @@ describe('signature', function () {
 
 				beforeEach(function () {
 					library = Signature.__get__('library');
-					schemaSpy = sinon.spy(library.schema, 'validate');
+					schemaSpy = sinonSandbox.spy(library.schema, 'validate');
 					signature.objectNormalize(transaction);
 				});
 
@@ -505,40 +513,6 @@ describe('signature', function () {
 
 				it('should return transactionId', function () {
 					expect(signature.dbRead(rawTransaction).signature.transactionId).to.eql(transactionId);
-				});
-			});
-		});
-
-		describe('dbSave', function () {
-
-			it('should return an error when publicKey is a number', function () {
-				var invalidPublicKey = 12;
-				transaction.asset.signature.publicKey = invalidPublicKey;
-				expect(function () {
-					signature.dbSave(transaction);
-				}).to.throw();
-			});
-
-			describe('for valid transaction', function () {
-
-				var expectedPromise;
-
-				beforeEach(function () {
-					expectedPromise = {
-						table: 'signatures',
-						fields: [
-							'transactionId',
-							'publicKey'
-						],
-						values: {
-							transactionId: transaction.id,
-							publicKey: Buffer.from(transaction.asset.signature.publicKey, 'hex')
-						}
-					};
-				});
-
-				it('should return signature db promise for signature transaction', function () {
-					expect(signature.dbSave(transaction)).to.eql(expectedPromise);
 				});
 			});
 		});

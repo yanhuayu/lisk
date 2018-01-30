@@ -1,3 +1,16 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 /**
@@ -6,6 +19,7 @@
  * @property {number} activeDelegates - The default number of delegates.
  * @property {number} maxVotesPerTransaction - The maximum number of votes in vote type transaction.
  * @property {number} addressLength - The default address length.
+ * @property {number} blockSlotWindow - The default no. of previous blocks to keep in memory.
  * @property {number} blockHeaderLength - The default block header length.
  * @property {number} blockReceiptTimeOut
  * @property {number} confirmationLength
@@ -44,6 +58,7 @@
 var constants = {
 	activeDelegates: 101,
 	addressLength: 208,
+	blockSlotWindow: 5,
 	additionalData: {
 		minLength: 1,
 		maxLength: 64

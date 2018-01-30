@@ -1,16 +1,24 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-
-
-var chai = require('chai');
-var expect = require('chai').expect;
 var async = require('async');
-var sinon = require('sinon');
+var rewire = require('rewire');
 
 var transactionTypes = require('../../../helpers/transactionTypes.js');
 var constants = require('../../../helpers/constants.js');
 var modulesLoader = require('../../common/modulesLoader');
-var rewire = require('rewire');
 
 var AccountLogic = require('../../../logic/account.js');
 var TransactionLogic = require('../../../logic/transaction.js');
@@ -92,13 +100,13 @@ describe('transactions', function () {
 					'confirmations',
 					'height'
 				],
-				countList: sinon.stub().resolves(),
-				list: sinon.stub().resolves()
+				countList: sinonSandbox.stub().resolves(),
+				list: sinonSandbox.stub().resolves()
 			}
 		};
 
 		Object.keys(TransactionTypeMap).forEach(function (key) {
-			dbStub.transactions[TransactionTypeMap[key]] = sinon.stub().resolves();
+			dbStub.transactions[TransactionTypeMap[key]] = sinonSandbox.stub().resolves();
 		});
 
 		async.auto({

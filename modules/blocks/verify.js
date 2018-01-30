@@ -1,6 +1,20 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var async = require('async');
+var _ = require('lodash');
 var BlockReward = require('../../logic/blockReward.js');
 var constants = require('../../helpers/constants.js');
 var crypto = require('crypto');
@@ -10,6 +24,7 @@ var bson = require('../../helpers/bson.js');
 
 var modules, library, self, __private = {};
 
+__private.lastNBlockIds = [];
 
 function Verify (logger, block, transaction, db) {
 	library = {
@@ -90,8 +105,7 @@ __private.checkTransaction = function (block, transaction, cb) {
  * Set height according to the given last block
  *
  * @private
- * @method verifyBlock
- * @method verifyReceipt
+ * @method setHeight
  * @param  {Object}  block Target block
  * @param  {Object}  lastBlock Last block
  * @return {Object}  block Target block
@@ -106,8 +120,7 @@ __private.setHeight = function (block, lastBlock) {
  * Verify block signature
  *
  * @private
- * @method verifyBlock
- * @method verifyReceipt
+ * @method verifySignature
  * @param  {Object}  block Target block
  * @param  {Object}  result Verification results
  * @return {Object}  result Verification results
@@ -134,8 +147,7 @@ __private.verifySignature = function (block, result) {
  * Verify previous block
  *
  * @private
- * @method verifyBlock
- * @method verifyReceipt
+ * @method verifyPreviousBlock
  * @param  {Object}  block Target block
  * @param  {Object}  result Verification results
  * @return {Object}  result Verification results
@@ -151,11 +163,29 @@ __private.verifyPreviousBlock = function (block, result) {
 };
 
 /**
+ * Verify block is not one of the last {constants.blockSlotWindow} saved blocks
+ *
+ * @private
+ * @method verifyAgainstLastNBlockIds
+ * @param  {Object}  block Target block
+ * @param  {Object}  result Verification results
+ * @return {Object}  result Verification results
+ * @return {boolean} result.verified Indicator that verification passed
+ * @return {Array}   result.errors Array of validation errors
+ */
+__private.verifyAgainstLastNBlockIds = function (block, result) {
+	if (__private.lastNBlockIds.indexOf(block.id) !== -1) {
+		result.errors.push('Block already exists in chain');
+	};
+
+	return result;
+};
+
+/**
  * Verify block version
  *
  * @private
- * @method verifyBlock
- * @method verifyReceipt
+ * @method verifyVersion
  * @param  {Object}  block Target block
  * @param  {Object}  result Verification results
  * @return {Object}  result Verification results
@@ -174,8 +204,7 @@ __private.verifyVersion = function (block, result) {
  * Verify block reward
  *
  * @private
- * @method verifyBlock
- * @method verifyReceipt
+ * @method verifyReward
  * @param  {Object}  block Target block
  * @param  {Object}  result Verification results
  * @return {Object}  result Verification results
@@ -196,8 +225,7 @@ __private.verifyReward = function (block, result) {
  * Verify block id
  *
  * @private
- * @method verifyBlock
- * @method verifyReceipt
+ * @method verifyId
  * @param  {Object}  block Target block
  * @param  {Object}  result Verification results
  * @return {Object}  result Verification results
@@ -220,8 +248,7 @@ __private.verifyId = function (block, result) {
  * Verify block payload (transactions)
  *
  * @private
- * @method verifyBlock
- * @method verifyReceipt
+ * @method verifyPayload
  * @param  {Object}  block Target block
  * @param  {Object}  result Verification results
  * @return {Object}  result Verification results
@@ -285,7 +312,7 @@ __private.verifyPayload = function (block, result) {
  * Verify block for fork cause one
  *
  * @private
- * @method verifyBlock
+ * @method verifyForkOne
  * @param  {Object}  block Target block
  * @param  {Object}  lastBlock Last block
  * @param  {Object}  result Verification results
@@ -306,7 +333,7 @@ __private.verifyForkOne = function (block, lastBlock, result) {
  * Verify block slot according to timestamp
  *
  * @private
- * @method verifyBlock
+ * @method verifyBlockSlot
  * @param  {Object}  block Target block
  * @param  {Object}  lastBlock Last block
  * @param  {Object}  result Verification results
@@ -320,6 +347,33 @@ __private.verifyBlockSlot = function (block, lastBlock, result) {
 
 	if (blockSlotNumber > slots.getSlotNumber() || blockSlotNumber <= lastBlockSlotNumber) {
 		result.errors.push('Invalid block timestamp');
+	}
+
+	return result;
+};
+
+/**
+ * Verify block slot window according to application time
+ *
+ * @private
+ * @method verifyBlockSlotWindow
+ * @param  {Object}  block Target block
+ * @return {Object}  result Verification results
+ * @return {boolean} result.verified Indicator that verification passed
+ * @return {Array}   result.errors Array of validation errors
+ */
+__private.verifyBlockSlotWindow = function (block, result) {
+	var currentApplicationSlot = slots.getSlotNumber();
+	var blockSlot = slots.getSlotNumber(block.timestamp);
+
+	// Reject block if it's slot is older than constants.blockSlotWindow
+	if (currentApplicationSlot - blockSlot > constants.blockSlotWindow) {
+		result.errors.push('Block slot is too old');
+	}
+
+	// Reject block if it's slot is in the future
+	if (currentApplicationSlot < blockSlot) {
+		result.errors.push('Block slot is in the future');
 	}
 
 	return result;
@@ -344,6 +398,8 @@ Verify.prototype.verifyReceipt = function (block) {
 
 	result = __private.verifySignature(block, result);
 	result = __private.verifyPreviousBlock(block, result);
+	result = __private.verifyAgainstLastNBlockIds(block, result);
+	result = __private.verifyBlockSlotWindow(block, result);
 	result = __private.verifyVersion(block, result);
 	result = __private.verifyReward(block, result);
 	result = __private.verifyId(block, result);
@@ -353,6 +409,33 @@ Verify.prototype.verifyReceipt = function (block) {
 	result.errors.reverse();
 
 	return result;
+};
+
+/**
+ * Loads last {constants.blockSlotWindow} blocks from the database into memory. Called when application triggeres blockchainReady event.
+ *
+ * @method onBlockchainReady
+ */
+Verify.prototype.onBlockchainReady = function () {
+	return library.db.blocks.loadLastNBlockIds(constants.blockSlotWindow).then(function (blockIds) {
+		__private.lastNBlockIds = _.map(blockIds, 'id');
+	}).catch(function (err) {
+		library.logger.error('Unable to load last ' + constants.blockSlotWindow + ' block ids');
+		library.logger.error(err);
+	});
+};
+
+/**
+ * Maintains __private.lastNBlock variable - a queue of fixed length (constants.blockSlotWindow). Called when application triggers newBlock event.
+ *
+ * @method onNewBlock
+ * @param {block} block
+ */
+Verify.prototype.onNewBlock = function (block) {
+	__private.lastNBlockIds.push(block.id);
+	if (__private.lastNBlockIds.length > constants.blockSlotWindow) {
+		__private.lastNBlockIds.shift();
+	}
 };
 
 /**
@@ -470,7 +553,7 @@ Verify.prototype.deleteBlockProperties = function (block) {
  * @return {function} cb Callback function from params (through setImmediate)
  * @return {Object}   cb.err Error if occurred
  */
-Verify.prototype.processBlock = function (block, broadcast, cb, saveBlock) {
+Verify.prototype.processBlock = function (block, broadcast, saveBlock, cb) {
 	if (modules.blocks.isCleaning.get()) {
 		// Break processing if node shutdown reqested
 		return setImmediate(cb, 'Cleaning up');
@@ -513,13 +596,12 @@ Verify.prototype.processBlock = function (block, broadcast, cb, saveBlock) {
 				return setImmediate(seriesCb);
 			}
 		},
-		deleteBlockProperties: function (seriesCb) {
+		broadcastBlock: function (seriesCb) {
 			if (broadcast) {
 				try {
 					// Delete default properties
-					var blockReduced = self.deleteBlockProperties(block);
-					var serializedBlockReduced = bson.serialize(blockReduced);
-					modules.blocks.chain.broadcastReducedBlock(serializedBlockReduced, block.id, broadcast);
+					var reducedBlock = self.deleteBlockProperties(block);
+					modules.blocks.chain.broadcastReducedBlock(reducedBlock, broadcast);
 				} catch (err) {
 					return setImmediate(seriesCb, err);
 				}

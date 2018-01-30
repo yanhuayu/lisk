@@ -1,16 +1,31 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../functional.js');
-
+require('../functional.js');
 var lisk = require('lisk-js');
-var expect = require('chai').expect;
 
 var phases = require('../common/phases');
 
 var ws = require('../../common/ws/communication');
 var randomUtil = require('../../common/utils/random');
 
+var normalizeTransactionObject = require('../../common/helpers/api').normalizeTransactionObject;
+
 function postTransaction (transaction, done) {
+	transaction = normalizeTransactionObject(transaction);
+
 	ws.call('postTransactions', {
 		transactions: [transaction]
 	}, done, true);

@@ -1,12 +1,23 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../../functional.js');
-
+require('../../functional.js');
 var randomstring = require('randomstring');
 var lisk = require('lisk-js');
 var Promise = require('bluebird');
 
-var _ = test._;
 var accountFixtures = require('../../../fixtures/accounts');
 
 var apiCodes = require('../../../../helpers/apiCodes');
@@ -26,12 +37,12 @@ describe('GET /api/voters', function () {
 	var validNotExistingAddress = '11111111111111111111L';
 
 	function expectValidVotedDelegateResponse (res) {
-		res.body.data.votes.should.be.least(res.body.data.voters.length);
+		expect(res.body.data.votes).to.be.least(res.body.data.voters.length);
 	}
 
 	function expectValidNotVotedDelegateResponse (res) {
-		res.body.data.votes.should.be.equal(0);
-		res.body.data.voters.should.be.empty;
+		expect(res.body.data.votes).to.be.equal(0);
+		expect(res.body.data.voters).to.be.empty;
 	}
 
 	describe('?', function () {
@@ -42,7 +53,7 @@ describe('GET /api/voters', function () {
 
 				it('should fail with error message requiring any of param', function () {
 					return votersEndpoint.makeRequest({}, 400).then(function (res) {
-						res.body.errors.should.have.length(4);
+						expect(res.body.errors).to.have.length(4);
 						expectSwaggerParamError(res, 'username');
 						expectSwaggerParamError(res, 'address');
 						expectSwaggerParamError(res, 'publicKey');
@@ -55,7 +66,7 @@ describe('GET /api/voters', function () {
 
 				it('should fail with error message requiring any of param', function () {
 					return votersEndpoint.makeRequest({sort: 'username:asc'}, 400).then(function (res) {
-						res.body.errors.should.have.length(4);
+						expect(res.body.errors).to.have.length(4);
 						expectSwaggerParamError(res, 'username');
 						expectSwaggerParamError(res, 'address');
 						expectSwaggerParamError(res, 'publicKey');
@@ -68,7 +79,7 @@ describe('GET /api/voters', function () {
 
 				it('should fail with error message requiring any of param', function () {
 					return votersEndpoint.makeRequest({offset: 1}, 400).then(function (res) {
-						res.body.errors.should.have.length(4);
+						expect(res.body.errors).to.have.length(4);
 						expectSwaggerParamError(res, 'username');
 						expectSwaggerParamError(res, 'address');
 						expectSwaggerParamError(res, 'publicKey');
@@ -81,7 +92,7 @@ describe('GET /api/voters', function () {
 
 				it('should fail with error message requiring any of param', function () {
 					return votersEndpoint.makeRequest({sort: 'username:asc'}, 400).then(function (res) {
-						res.body.errors.should.have.length(4);
+						expect(res.body.errors).to.have.length(4);
 						expectSwaggerParamError(res, 'username');
 						expectSwaggerParamError(res, 'address');
 						expectSwaggerParamError(res, 'publicKey');
@@ -243,16 +254,16 @@ describe('GET /api/voters', function () {
 					it('should return voters in ascending order', function () {
 						return votersEndpoint.makeRequest({sort: 'username:asc', username: validVotedDelegate.delegateName}, 200).then(function (res) {
 							expectValidVotedDelegateResponse(res);
-							res.body.data.username.should.equal(validVotedDelegate.delegateName);
-							_(res.body.data.voters).sortBy('username').map('username').value().should.to.be.eql(_.map(res.body.data.voters, 'username'));
+							expect(res.body.data.username).to.equal(validVotedDelegate.delegateName);
+							expect(_(res.body.data.voters).sortBy('username').map('username').value()).to.to.be.eql(_.map(res.body.data.voters, 'username'));
 						});
 					});
 
 					it('should return voters in descending order', function () {
 						return votersEndpoint.makeRequest({sort: 'username:desc', username: validVotedDelegate.delegateName}, 200).then(function (res) {
 							expectValidVotedDelegateResponse(res);
-							res.body.data.username.should.equal(validVotedDelegate.delegateName);
-							_(res.body.data.voters).sortBy('username').reverse().map('username').value().should.to.be.eql(_.map(res.body.data.voters, 'username'));
+							expect(res.body.data.username).to.equal(validVotedDelegate.delegateName);
+							expect(_(res.body.data.voters).sortBy('username').reverse().map('username').value()).to.to.be.eql(_.map(res.body.data.voters, 'username'));
 						});
 					});
 				});
@@ -262,16 +273,16 @@ describe('GET /api/voters', function () {
 					it('should return voters in ascending order', function () {
 						return votersEndpoint.makeRequest({sort: 'balance:asc', username: validVotedDelegate.delegateName}, 200).then(function (res) {
 							expectValidVotedDelegateResponse(res);
-							res.body.data.username.should.equal(validVotedDelegate.delegateName);
-							_.map(res.body.data.voters, 'balance').sort().should.to.be.eql(_.map(res.body.data.voters, 'balance'));
+							expect(res.body.data.username).to.equal(validVotedDelegate.delegateName);
+							expect(_.map(res.body.data.voters, 'balance').sort()).to.to.be.eql(_.map(res.body.data.voters, 'balance'));
 						});
 					});
 
 					it('should return voters in descending order', function () {
 						return votersEndpoint.makeRequest({sort: 'balance:desc', username: validVotedDelegate.delegateName}, 200).then(function (res) {
 							expectValidVotedDelegateResponse(res);
-							res.body.data.username.should.equal(validVotedDelegate.delegateName);
-							_.map(res.body.data.voters, 'balance').sort().reverse().should.to.be.eql(_.map(res.body.data.voters, 'balance'));
+							expect(res.body.data.username).to.equal(validVotedDelegate.delegateName);
+							expect(_.map(res.body.data.voters, 'balance').sort().reverse()).to.to.be.eql(_.map(res.body.data.voters, 'balance'));
 						});
 					});
 				});
@@ -284,7 +295,7 @@ describe('GET /api/voters', function () {
 
 				it('should return 2 voters', function () {
 					return votersEndpoint.makeRequest({limit: 2, username: validVotedDelegate.delegateName}, 200).then(function (res) {
-						res.body.data.voters.should.have.length(2);
+						expect(res.body.data.voters).to.have.length(2);
 					});
 				});
 			});
@@ -295,13 +306,13 @@ describe('GET /api/voters', function () {
 					var voters = null;
 
 					return votersEndpoint.makeRequest({limit: 2, offset: 0, username: validVotedDelegate.delegateName}, 200).then(function (res) {
-						res.body.data.voters.should.have.length(2);
+						expect(res.body.data.voters).to.have.length(2);
 
 						voters = _.map(res.body.data.voters, 'address');
 
 						return votersEndpoint.makeRequest({limit: 2, offset: 1, username: validVotedDelegate.delegateName}, 200);
 					}).then(function (res) {
-						_.intersection(voters, _.map(res.body.data.voters, 'address')).should.have.length(1);
+						expect(_.intersection(voters, _.map(res.body.data.voters, 'address'))).to.have.length(1);
 					});
 				});
 			});

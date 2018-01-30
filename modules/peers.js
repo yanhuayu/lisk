@@ -1,3 +1,16 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var _ = require('lodash');
@@ -43,14 +56,11 @@ function Peers(cb, scope) {
 		},
 		config: {
 			peers: scope.config.peers,
-			version: scope.config.version,
-			forging: {
-				force: scope.config.forging.force
-			}
+			version: scope.config.version
 		}
 	};
 	self = this;
-
+	self.consensus = scope.config.forging.force ? 100 : 0;
 	setImmediate(cb, null, self);
 }
 
@@ -172,17 +182,23 @@ __private.getMatched = function(test, peers) {
 __private.updatePeerStatus = function(err, status, peer) {
 
 	if (err) {
+		if (err.code === failureCodes.INCOMPATIBLE_NONCE) {
+			// If the node tries to connect to itself as a peer, the
+			// nonce will be incompatible. Here we put the peer in a BANNED
+			// state so that the node doesn't keep trying to reconnect to itself.
+			peer.applyHeaders({state: Peer.STATE.BANNED});
+		} else {
+			peer.applyHeaders({state: Peer.STATE.DISCONNECTED});
+		}
+	} else {
 		peer.applyHeaders({
-			state: Peer.STATE.DISCONNECTED
-		});
-		return false;
-	}
-	else {
-		peer.applyHeaders({
-			height: status.height,
 			broadhash: status.broadhash,
+			height: status.height,
+			httpPort: status.httpPort,
 			nonce: status.nonce,
-			state: Peer.STATE.CONNECTED //connected
+			os: status.os,
+			state: Peer.STATE.CONNECTED,
+			version: status.version
 		});
 	}
 
@@ -291,10 +307,10 @@ __private.dbSave = function(cb) {
 
 	// Wrap sql queries in transaction and execute
 	library.db.tx('modules:peers:dbSave', function (t) {
-		return library.db.peers.clear(t).then(function (value) {
-			return library.db.peers.insert(peers, t);
+		return t.peers.clear().then(function () {
+			return t.peers.insert(peers);
 		});
-	}).then(function (data) {
+	}).then(function () {
 		library.logger.info('Peers exported to database');
 		return setImmediate(cb);
 	}).catch(function(err) {
@@ -306,16 +322,23 @@ __private.dbSave = function(cb) {
 };
 
 /**
+ * Returns consensus stored by Peers.prototype.calculateConsensus
+ * @returns {number|undefined} - Last calculated consensus or null wasn't calculated yet
+ */
+Peers.prototype.getLastConsensus = function () {
+	return self.consensus;
+};
+
+/**
 * Calculates consensus for as a ratio active to matched peers.
-* @param {Array<Peer>} active - Active peers (with connected state).
-* @param {Array<Peer>} matched - Peers with same as system broadhash.
-* @returns {number|undefined} - Consensus or undefined if config.forging.force = true.
+* @param {Array<Peer>}[active=peers list] active - Active peers (with connected state).
+* @param {Array<Peer>}[matched=matching active peers] matched - Peers with same as system broadhash.
+* @returns {number} - Consensus or undefined if config.forging.force = true.
 */
-Peers.prototype.getConsensus = function (active, matched) {
-	if (library.config.forging.force) {
-		return undefined;
-	}
-	active = active || library.logic.peers.list(true);
+Peers.prototype.calculateConsensus = function (active, matched) {
+	active = active || library.logic.peers.list(true).filter(function (peer) {
+		return peer.state === Peer.STATE.CONNECTED;
+	});
 	var broadhash = modules.system.getBroadhash();
 	matched = matched || active.filter(function (peer) {
 		return peer.broadhash === broadhash;
@@ -323,7 +346,8 @@ Peers.prototype.getConsensus = function (active, matched) {
 	var activeCount = Math.min(active.length, constants.maxPeers);
 	var matchedCount = Math.min(matched.length, activeCount);
 	var consensus = +(matchedCount / activeCount * 100).toPrecision(2);
-	return isNaN(consensus) ? 0 : consensus;
+	self.consensus = isNaN(consensus) ? 0 : consensus;
+	return self.consensus;
 };
 
 // Public methods
@@ -375,6 +399,9 @@ Peers.prototype.discover = function(cb) {
 			if (!err && randomPeer) {
 				randomPeer.rpc.status(function(err, status) {
 					__private.updatePeerStatus(err, status, randomPeer);
+					if (err) {
+						return setImmediate(waterCb, err);
+					}
 					randomPeer.rpc.list(waterCb);
 				});
 			}
@@ -452,11 +479,11 @@ Peers.prototype.acceptable = function(peers) {
 /**
  * Gets peers list and calculated consensus.
  * @param {Object} options
- * @param {number} options.limit[=constants.maxPeers] - Maximum number of peers to get.
- * @param {string} options.broadhash[=null] - Broadhash to match peers by.
- * @param {string} options.normalized[=undefined] - Return peers in normalized (json) form.
- * @param {Array} options.allowedStates[=[2]] - Allowed peer states.
- * @param {number} options.attempt[=undefined] - If 0: Return peers with equal options.broadhash
+ * @param {number} [options.limit=constants.maxPeers] - Maximum number of peers to get.
+ * @param {string} [options.broadhash=null] - Broadhash to match peers by.
+ * @param {string} [options.normalized=undefined] - Return peers in normalized (json) form.
+ * @param {Array} [options.allowedStates=[2]] - Allowed peer states.
+ * @param {number} [options.attempt=undefined] - If 0: Return peers with equal options.broadhash
  *                                               If 1: Return peers with different options.broadhash
  *                                               If not specified: return peers regardless of options.broadhash
  * @param {function} cb - Callback function.

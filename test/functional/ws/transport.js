@@ -1,12 +1,22 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../functional.js');
-
-var _ = test._;
+require('../functional.js');
 var async = require('async');
 var WAMPClient = require('wamp-socket-cluster/WAMPClient');
 var scClient = require('socketcluster-client');
-var expect = require('chai').expect;
 
 var prefixedPeer = require('../../fixtures/peers').randomNormalizedPeer;
 
@@ -26,7 +36,7 @@ describe('RPC', function () {
 		validClientSocketOptions = {
 			protocol: 'http',
 			hostname: '127.0.0.1',
-			port: test.config.wsPort,
+			port: __testContext.config.wsPort,
 			query: _.clone(frozenHeaders)
 		};
 		clientSocket = scClient.connect(validClientSocketOptions);
@@ -159,12 +169,15 @@ describe('RPC', function () {
 
 	describe('status', function () {
 
-		it('should return height and broadhash', function (done) {
+		it('should return height, broadhash, nonce, os, version and httpPort', function (done) {
 			clientSocket.wampSend('status')
 				.then(function (result) {
 					expect(result).to.have.property('success').to.be.ok;
 					expect(result).to.have.property('broadhash').that.is.a('string');
 					expect(result).to.have.property('nonce').that.is.a('string');
+					expect(result).to.have.property('os').that.is.a('string');
+					expect(result).to.have.property('version').that.is.a('string');
+					expect(result).to.have.property('httpPort').that.is.a('number');
 					expect(result).to.have.property('height').that.is.a('number').at.least(1);
 					done();
 				}).catch(function (err) {

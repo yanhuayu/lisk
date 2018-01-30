@@ -1,10 +1,19 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var chai = require('chai');
-var expect = require('chai').expect;
 var express = require('express');
-var _  = require('lodash');
-var sinon = require('sinon');
 
 var failureCodes = require('../../../api/ws/rpc/failureCodes');
 var modulesLoader = require('../../common/modulesLoader');
@@ -22,7 +31,7 @@ describe('peers', function () {
 	before(function (done) {
 
 		peersModuleMock = {
-			acceptable: sinon.stub().returnsArg(0)
+			acceptable: sinonSandbox.stub().returnsArg(0)
 		};
 
 		modulesLoader.initLogic(Peers, modulesLoader.scope, function (err, __peers) {
@@ -33,7 +42,7 @@ describe('peers', function () {
 	});
 
 	beforeEach(function () {
-		peersModuleMock.acceptable = sinon.stub().returnsArg(0);
+		peersModuleMock.acceptable = sinonSandbox.stub().returnsArg(0);
 		validPeer = _.assign({}, prefixedPeer);
 	});
 
@@ -210,7 +219,7 @@ describe('peers', function () {
 			});
 
 			it('NOT_ACCEPTED when called with the same as node nonce', function () {
-				peersModuleMock.acceptable = sinon.stub().returns([]);
+				peersModuleMock.acceptable = sinonSandbox.stub().returns([]);
 				validPeer.nonce = validNodeNonce;
 				expect(peers.upsert(validPeer)).to.equal(failureCodes.ON_MASTER.INSERT.NOT_ACCEPTED);
 			});

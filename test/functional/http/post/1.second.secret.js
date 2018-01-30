@@ -1,9 +1,20 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../../functional.js');
-
+require('../../functional.js');
 var lisk = require('lisk-js');
-var expect = require('chai').expect;
 var Promise = require('bluebird');
 
 var common = require('./common');
@@ -44,7 +55,7 @@ describe('POST /api/transactions (type 1) register second secret', function () {
 		return Promise.all(promises)
 			.then(function (results) {
 				results.forEach(function (res) {
-					res.body.data.message.should.be.equal('Transaction(s) accepted');
+					expect(res.body.data.message).to.be.equal('Transaction(s) accepted');
 				});
 
 				transactionsToWaitFor.push(transaction1.id, transaction2.id, transaction3.id);
@@ -63,7 +74,7 @@ describe('POST /api/transactions (type 1) register second secret', function () {
 			transaction = lisk.transaction.createTransaction(accountFixtures.existingDelegate.address, 1, accountNoSecondPassword.password, accountNoSecondPassword.secondPassword);
 
 			return apiHelpers.sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-				res.body.message.should.be.equal('Sender does not have a second signature');
+				expect(res.body.message).to.be.equal('Sender does not have a second signature');
 				badTransactions.push(transaction);
 			});
 		});
@@ -72,16 +83,16 @@ describe('POST /api/transactions (type 1) register second secret', function () {
 			transaction = lisk.signature.createSignature(accountNoFunds.password, accountNoFunds.secondPassword);
 
 			return apiHelpers.sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-				res.body.message.should.be.equal('Account does not have enough LSK: ' + accountNoFunds.address + ' balance: 0');
+				expect(res.body.message).to.be.equal('Account does not have enough LSK: ' + accountNoFunds.address + ' balance: 0');
 				badTransactions.push(transaction);
 			});
 		});
 
 		it('with minimal required amount of funds should be ok', function () {
-			transaction = lisk.signature.createSignature(accountMinimalFunds.password, accountMinimalFunds.secondPassword, -1);
+			transaction = lisk.signature.createSignature(accountMinimalFunds.password, accountMinimalFunds.secondPassword, -10000);
 
 			return apiHelpers.sendTransactionPromise(transaction).then(function (res) {
-				res.body.data.message.should.be.equal('Transaction(s) accepted');
+				expect(res.body.data.message).to.be.equal('Transaction(s) accepted');
 				goodTransactions.push(transaction);
 			});
 		});
@@ -90,7 +101,7 @@ describe('POST /api/transactions (type 1) register second secret', function () {
 			transaction = lisk.signature.createSignature(account.password, account.secondPassword);
 
 			return apiHelpers.sendTransactionPromise(transaction).then(function (res) {
-				res.body.data.message.should.be.equal('Transaction(s) accepted');
+				expect(res.body.data.message).to.be.equal('Transaction(s) accepted');
 				goodTransactions.push(transaction);
 			});
 		});

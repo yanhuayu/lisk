@@ -1,7 +1,20 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 pipeline {
-	agent { node {label "node-07"} }
+	agent { node { label "node-07" } }
 	stages {
-		stage("Prepare Workspace") {
+		stage("Prepare workspace") {
 			steps {
 				deleteDir()
 				dir(params.MIGRATE_FROM) {
@@ -25,7 +38,7 @@ pipeline {
 				"""
 			}
 		}
-		stage("Start Old Lisk") {
+		stage("Start old Lisk") {
 			steps {
 				sh """
 				cd "${params.MIGRATE_FROM}"
@@ -35,7 +48,7 @@ pipeline {
 				"""
 			}
 		}
-		stage("Start New Lisk") {
+		stage("Start new Lisk") {
 			steps {
 				sh """
 				cd "${params.MIGRATE_TO}"

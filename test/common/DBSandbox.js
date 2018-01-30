@@ -1,6 +1,27 @@
-var child_process = require('child_process');
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
+'use strict';
 
-var database = require('../../helpers/database.js');
+var child_process = require('child_process');
+var rewire = require('rewire');
+
+var database = rewire('../../db');
+var initOptions = database.__get__('initOptions');
+// Prevent protocol locking, so we can redefine database properties,
+// see: http://vitaly-t.github.io/pg-promise/module-pg-promise
+initOptions.noLocking = true;
+database.__set__('initOptions', initOptions);
 
 var testDatabaseNames = [];
 
@@ -40,7 +61,9 @@ function DBSandbox (dbConfig, testDatabaseName) {
 DBSandbox.prototype.create = function (cb) {
 	child_process.exec('dropdb ' + this.dbConfig.database, function () {
 		child_process.exec('createdb ' + this.dbConfig.database, function () {
-			database.connect(this.dbConfig, console, cb);
+			database.connect(this.dbConfig, console)
+				.then(db => cb(null, db))
+				.catch(err => cb(err));
 		}.bind(this));
 	}.bind(this));
 };

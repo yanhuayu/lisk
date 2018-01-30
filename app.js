@@ -1,3 +1,16 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 /**
  * A node-style callback as used by {@link logic} and {@link modules}.
@@ -90,6 +103,7 @@ var config = {
 		cache: './modules/cache.js',
 		dapps: './modules/dapps.js',
 		delegates: './modules/delegates.js',
+		rounds: './modules/rounds.js',
 		loader: './modules/loader.js',
 		multisignatures: './modules/multisignatures.js',
 		node: './modules/node.js',
@@ -115,6 +129,18 @@ var logger = new Logger({
 	errorLevel: appConfig.fileLogLevel,
 	filename: appConfig.logFileName
 });
+
+var dbLogger = null;
+
+if (appConfig.db.logFileName && appConfig.db.logFileName === appConfig.logFileName) {
+	dbLogger = logger;
+} else {
+	dbLogger = new Logger({
+		echo: appConfig.db.consoleLogLevel || appConfig.consoleLogLevel,
+		errorLevel: appConfig.db.fileLogLevel || appConfig.fileLogLevel,
+		filename: appConfig.db.logFileName
+	});
+}
 
 // Trying to get last git commit
 try {
@@ -343,7 +369,7 @@ d.run(function() {
 			}));
 			scope.network.app.use(methodOverride());
 
-			var ignore = ['id', 'name', 'username', 'blockId', 'transactionId', 'address', 'recipientAddress', 'senderAddress'];
+			var ignore = ['id', 'name', 'username', 'blockId', 'transactionId', 'address', 'recipientId', 'senderId'];
 
 			scope.network.app.use(queryParser({
 				parser: function(value, radix, name) {
@@ -421,14 +447,12 @@ d.run(function() {
 			};
 			cb(null, new bus());
 		}],
-		db: function(cb) {
-			var db = require('./helpers/database.js');
-			db.connect(config.db, logger, cb);
+		db: function (cb) {
+			var db = require('./db');
+			db.connect(config.db, dbLogger)
+				.then(db => cb(null, db))
+				.catch(err => cb(err));
 		},
-		pg_notify: ['db', 'bus', 'logger', function(scope, cb) {
-			var pg_notify = require('./helpers/pg-notify.js');
-			pg_notify.init(scope.db, scope.bus, scope.logger, cb);
-		}],
 		/**
 		 * It tries to connect with redis server based on config. provided in config.json file
 		 * @param {function} cb

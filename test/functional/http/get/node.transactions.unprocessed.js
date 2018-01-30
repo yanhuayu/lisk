@@ -1,16 +1,27 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../../functional.js');
+require('../../functional.js');
 var lisk = require('lisk-js');
 var apiHelpers = require('../../../common/helpers/api');
 var randomUtil = require('../../../common/utils/random');
 var swaggerEndpoint = require('../../../common/swaggerSpec');
 var expectSwaggerParamError = apiHelpers.expectSwaggerParamError;
 var sendTransactionPromise = apiHelpers.sendTransactionPromise;
-var sendTransactionsPromise = apiHelpers.sendTransactionsPromise;
 var accountFixtures = require('../../../fixtures/accounts');
 var Promise = require('bluebird');
-var _ = test._;
 
 describe('GET /api/node', function () {
 
@@ -38,7 +49,7 @@ describe('GET /api/node', function () {
 					return sendTransactionPromise(transaction);
 				}).then(function (responses) {
 					responses.map(function (res) {
-						res.body.data.message.should.be.equal('Transaction(s) accepted');
+						expect(res.body.data.message).to.be.equal('Transaction(s) accepted');
 					});
 				});
 			});
@@ -63,14 +74,14 @@ describe('GET /api/node', function () {
 
 				it('using completely invalid fields should fail', function () {
 					return UnProcessedEndpoint.makeRequest({
-						senderAddress: 'invalid',
-						recipientAddress: 'invalid',
+						senderId: 'invalid',
+						recipientId: 'invalid',
 						limit: 'invalid',
 						offset: 'invalid',
 						sort: 'invalid'
 					}, 400).then(function (res) {
-						expectSwaggerParamError(res, 'senderAddress');
-						expectSwaggerParamError(res, 'recipientAddress');
+						expectSwaggerParamError(res, 'senderId');
+						expectSwaggerParamError(res, 'recipientId');
 						expectSwaggerParamError(res, 'limit');
 						expectSwaggerParamError(res, 'offset');
 						expectSwaggerParamError(res, 'sort');
@@ -79,13 +90,13 @@ describe('GET /api/node', function () {
 
 				it('using partially invalid fields should fail', function () {
 					return UnProcessedEndpoint.makeRequest({
-						senderAddress: 'invalid',
-						recipientAddress: account.address,
+						senderId: 'invalid',
+						recipientId: account.address,
 						limit: 'invalid',
 						offset: 'invalid',
 						sort: 'invalid'
 					}, 400).then(function (res) {
-						expectSwaggerParamError(res, 'senderAddress');
+						expectSwaggerParamError(res, 'senderId');
 						expectSwaggerParamError(res, 'limit');
 						expectSwaggerParamError(res, 'offset');
 						expectSwaggerParamError(res, 'sort');
@@ -95,7 +106,7 @@ describe('GET /api/node', function () {
 
 			it('using no params should be ok', function () {
 				return UnProcessedEndpoint.makeRequest({}, 200).then(function (res) {
-					res.body.meta.count.should.be.at.least(numOfTransactions);
+					expect(res.body.meta.count).to.be.at.least(numOfTransactions);
 				});
 			});
 
@@ -111,15 +122,15 @@ describe('GET /api/node', function () {
 					var transactionInCheck = transactionList[0];
 
 					return UnProcessedEndpoint.makeRequest({id: transactionInCheck.id}, 200).then(function (res) {
-						res.body.data.should.not.empty;
-						res.body.data.should.has.length(1);
-						res.body.data[0].id.should.be.equal(transactionInCheck.id);
+						expect(res.body.data).to.not.empty;
+						expect(res.body.data).to.has.length(1);
+						expect(res.body.data[0].id).to.be.equal(transactionInCheck.id);
 					});
 				});
 
 				it('using valid but unknown id should be ok', function () {
 					return UnProcessedEndpoint.makeRequest({id: '1111111111111111'}, 200).then(function (res) {
-						res.body.data.should.be.empty;
+						expect(res.body.data).to.be.empty;
 					});
 				});
 			});
@@ -136,36 +147,36 @@ describe('GET /api/node', function () {
 					var transactionInCheck = transactionList[0];
 
 					return UnProcessedEndpoint.makeRequest({type: transactionInCheck.type}, 200).then(function (res) {
-						res.body.data.should.not.empty;
-						res.body.data.length.should.be.at.least(numOfTransactions);
+						expect(res.body.data).to.not.empty;
+						expect(res.body.data.length).to.be.at.least(numOfTransactions);
 						res.body.data.map(function (transaction) {
-							transaction.type.should.be.equal(transactionInCheck.type);
+							expect(transaction.type).to.be.equal(transactionInCheck.type);
 						});
 					});
 				});
 			});
 
-			describe('senderAddress', function () {
+			describe('senderId', function () {
 
-				it('using invalid senderAddress should fail', function () {
-					return UnProcessedEndpoint.makeRequest({senderAddress: '79fjdfd'}, 400).then(function (res) {
-						expectSwaggerParamError(res, 'senderAddress');
+				it('using invalid senderId should fail', function () {
+					return UnProcessedEndpoint.makeRequest({ senderId: '79fjdfd'}, 400).then(function (res) {
+						expectSwaggerParamError(res, 'senderId');
 					});
 				});
 
-				it('using valid senderAddress should be ok', function () {
-					return UnProcessedEndpoint.makeRequest({senderAddress: accountFixtures.genesis.address}, 200).then(function (res) {
-						res.body.data.should.not.empty;
-						res.body.data.length.should.be.at.least(numOfTransactions);
+				it('using valid senderId should be ok', function () {
+					return UnProcessedEndpoint.makeRequest({ senderId: accountFixtures.genesis.address}, 200).then(function (res) {
+						expect(res.body.data).to.not.empty;
+						expect(res.body.data.length).to.be.at.least(numOfTransactions);
 						res.body.data.map(function (transaction) {
-							transaction.senderAddress.should.be.equal(accountFixtures.genesis.address);
+							expect(transaction.senderId).to.be.equal(accountFixtures.genesis.address);
 						});
 					});
 				});
 
-				it('using valid but unknown senderAddress should be ok', function () {
-					return UnProcessedEndpoint.makeRequest({senderAddress: '1631373961111634666L'}, 200).then(function (res) {
-						res.body.data.should.be.empty;
+				it('using valid but unknown senderId should be ok', function () {
+					return UnProcessedEndpoint.makeRequest({ senderId: '1631373961111634666L'}, 200).then(function (res) {
+						expect(res.body.data).to.be.empty;
 					});
 				});
 			});
@@ -180,43 +191,43 @@ describe('GET /api/node', function () {
 
 				it('using valid senderPublicKey should be ok', function () {
 					return UnProcessedEndpoint.makeRequest({senderPublicKey: accountFixtures.genesis.publicKey}, 200).then(function (res) {
-						res.body.data.should.not.empty;
-						res.body.data.length.should.be.at.least(numOfTransactions);
+						expect(res.body.data).to.not.empty;
+						expect(res.body.data.length).to.be.at.least(numOfTransactions);
 						res.body.data.map(function (transaction) {
-							transaction.senderPublicKey.should.be.equal(accountFixtures.genesis.publicKey);
+							expect(transaction.senderPublicKey).to.be.equal(accountFixtures.genesis.publicKey);
 						});
 					});
 				});
 
 				it('using valid but unknown senderPublicKey should be ok', function () {
 					return UnProcessedEndpoint.makeRequest({senderPublicKey: 'c094ebee7ec0c50ebeeaaaa8655e089f6e1a604b83bcaa760293c61e0f18ab6f'}, 200).then(function (res) {
-						res.body.data.should.be.empty;
+						expect(res.body.data).to.be.empty;
 					});
 				});
 			});
 
-			describe('recipientAddress', function () {
+			describe('recipientId', function () {
 
-				it('using invalid recipientAddress should fail', function () {
-					return UnProcessedEndpoint.makeRequest({recipientAddress: '79fjdfd'}, 400).then(function (res) {
-						expectSwaggerParamError(res, 'recipientAddress');
+				it('using invalid recipientId should fail', function () {
+					return UnProcessedEndpoint.makeRequest({recipientId: '79fjdfd'}, 400).then(function (res) {
+						expectSwaggerParamError(res, 'recipientId');
 					});
 				});
 
-				it('using valid recipientAddress should be ok', function () {
+				it('using valid recipientId should be ok', function () {
 
-					return UnProcessedEndpoint.makeRequest({recipientAddress: account.address}, 200).then(function (res) {
-						res.body.data.should.not.empty;
-						res.body.data.length.should.be.at.least(numOfTransactions);
+					return UnProcessedEndpoint.makeRequest({recipientId: account.address}, 200).then(function (res) {
+						expect(res.body.data).to.not.empty;
+						expect(res.body.data.length).to.be.at.least(numOfTransactions);
 						res.body.data.map(function (transaction) {
-							transaction.recipientAddress.should.be.equal(account.address);
+							expect(transaction.recipientId).to.be.equal(account.address);
 						});
 					});
 				});
 
-				it('using valid but unknown recipientAddress should be ok', function () {
-					return UnProcessedEndpoint.makeRequest({recipientAddress: '1631373961111634666L'}, 200).then(function (res) {
-						res.body.data.should.be.empty;
+				it('using valid but unknown recipientId should be ok', function () {
+					return UnProcessedEndpoint.makeRequest({recipientId: '1631373961111634666L'}, 200).then(function (res) {
+						expect(res.body.data).to.be.empty;
 					});
 				});
 			});
@@ -231,18 +242,18 @@ describe('GET /api/node', function () {
 
 				it('using valid recipientPublicKey should be ok', function () {
 					return UnProcessedEndpoint.makeRequest({recipientPublicKey: account.publicKey}, 200).then(function (res) {
-						res.body.data.should.not.empty;
-						res.body.data.length.should.be.at.least(numOfTransactions);
+						expect(res.body.data).to.not.empty;
+						expect(res.body.data.length).to.be.at.least(numOfTransactions);
 						res.body.data.map(function (transaction) {
 							// TODO: Unprocessed transactions don't have recipientPublicKey attribute, so matched address
-							transaction.recipientAddress.should.be.equal(account.address);
+							expect(transaction.recipientId).to.be.equal(account.address);
 						});
 					});
 				});
 
 				it('using valid but unknown recipientPublicKey should be ok', function () {
 					return UnProcessedEndpoint.makeRequest({recipientPublicKey: 'c094ebee7ec0c50ebeeaaaa8655e089f6e1a604b83bcaa760293c61e0f18ab6f'}, 200).then(function (res) {
-						res.body.data.should.be.empty;
+						expect(res.body.data).to.be.empty;
 					});
 				});
 			});
@@ -263,8 +274,8 @@ describe('GET /api/node', function () {
 
 				it('using limit = 2 should return 2 transactions', function () {
 					return UnProcessedEndpoint.makeRequest({limit: 2}, 200).then(function (res) {
-						res.body.data.should.not.be.empty;
-						res.body.data.length.should.be.at.most(2);
+						expect(res.body.data).to.not.be.empty;
+						expect(res.body.data.length).to.be.at.most(2);
 					});
 				});
 			});
@@ -286,7 +297,7 @@ describe('GET /api/node', function () {
 						return UnProcessedEndpoint.makeRequest({offset: 1, limit: 2}, 200);
 					}).then(function (res) {
 						res.body.data.forEach(function (transaction) {
-							transaction.id.should.not.equal(firstTransaction.id);
+							expect(transaction.id).to.not.equal(firstTransaction.id);
 						});
 					});
 				});
@@ -298,21 +309,21 @@ describe('GET /api/node', function () {
 
 					it('sorted by amount:asc should be ok', function () {
 						return UnProcessedEndpoint.makeRequest({sort: 'amount:asc'}, 200).then(function (res) {
-							res.body.data.should.not.be.empty;
+							expect(res.body.data).to.not.be.empty;
 
 							var values = _.map(res.body.data, 'amount').map(function (value) { return parseInt(value); });
 
-							_(_.clone(values)).sortNumbers('asc').should.be.eql(values);
+							expect(_(_.clone(values)).sortNumbers('asc')).to.be.eql(values);
 						});
 					});
 
 					it('sorted by amount:desc should be ok', function () {
 						return UnProcessedEndpoint.makeRequest({sort: 'amount:desc'}, 200).then(function (res) {
-							res.body.data.should.not.be.empty;
+							expect(res.body.data).to.not.be.empty;
 
 							var values = _.map(res.body.data, 'amount').map(function (value) { return parseInt(value); });
 
-							_(_.clone(values)).sortNumbers('desc').should.be.eql(values);
+							expect(_(_.clone(values)).sortNumbers('desc')).to.be.eql(values);
 						});
 					});
 				});
@@ -321,21 +332,21 @@ describe('GET /api/node', function () {
 
 					it('sorted by fee:asc should be ok', function () {
 						return UnProcessedEndpoint.makeRequest({sort: 'fee:asc'}, 200).then(function (res) {
-							res.body.data.should.not.be.empty;
+							expect(res.body.data).to.not.be.empty;
 
 							var values = _.map(res.body.data, 'fee').map(function (value) { return parseInt(value); });
 
-							_(_.clone(values)).sortNumbers('asc').should.be.eql(values);
+							expect(_(_.clone(values)).sortNumbers('asc')).to.be.eql(values);
 						});
 					});
 
 					it('sorted by fee:desc should be ok', function () {
 						return UnProcessedEndpoint.makeRequest({sort: 'fee:desc'}, 200).then(function (res) {
-							res.body.data.should.not.be.empty;
+							expect(res.body.data).to.not.be.empty;
 
 							var values = _.map(res.body.data, 'fee').map(function (value) { return parseInt(value); });
 
-							_(_.clone(values)).sortNumbers('desc').should.be.eql(values);
+							expect(_(_.clone(values)).sortNumbers('desc')).to.be.eql(values);
 						});
 					});
 				});
@@ -344,17 +355,17 @@ describe('GET /api/node', function () {
 
 					it('sorted by fee:asc should be ok', function () {
 						return UnProcessedEndpoint.makeRequest({sort: 'type:asc'}, 200).then(function (res) {
-							res.body.data.should.not.be.empty;
+							expect(res.body.data).to.not.be.empty;
 
-							_(res.body.data).map('type').sortNumbers('asc').should.be.eql(_.map(res.body.data, 'type'));
+							expect(_(res.body.data).map('type').sortNumbers('asc')).to.be.eql(_.map(res.body.data, 'type'));
 						});
 					});
 
 					it('sorted by fee:desc should be ok', function () {
 						return UnProcessedEndpoint.makeRequest({sort: 'type:desc'}, 200).then(function (res) {
-							res.body.data.should.not.be.empty;
+							expect(res.body.data).to.not.be.empty;
 
-							_(res.body.data).map('type').sortNumbers('desc').should.be.eql(_.map(res.body.data, 'type'));
+							expect(_(res.body.data).map('type').sortNumbers('desc')).to.be.eql(_.map(res.body.data, 'type'));
 						});
 					});
 				});
@@ -363,17 +374,17 @@ describe('GET /api/node', function () {
 
 					it('sorted by timestamp:asc should be ok', function () {
 						return UnProcessedEndpoint.makeRequest({sort: 'timestamp:asc'}, 200).then(function (res) {
-							res.body.data.should.not.be.empty;
+							expect(res.body.data).to.not.be.empty;
 
-							_(res.body.data).map('timestamp').sortNumbers('asc').should.be.eql(_.map(res.body.data, 'timestamp'));
+							expect(_(res.body.data).map('timestamp').sortNumbers('asc')).to.be.eql(_.map(res.body.data, 'timestamp'));
 						});
 					});
 
 					it('sorted by timestamp:desc should be ok', function () {
 						return UnProcessedEndpoint.makeRequest({sort: 'timestamp:desc'}, 200).then(function (res) {
-							res.body.data.should.not.be.empty;
+							expect(res.body.data).to.not.be.empty;
 
-							_(res.body.data).map('timestamp').sortNumbers('desc').should.be.eql(_.map(res.body.data, 'timestamp'));
+							expect(_(res.body.data).map('timestamp').sortNumbers('desc')).to.be.eql(_.map(res.body.data, 'timestamp'));
 						});
 					});
 				});

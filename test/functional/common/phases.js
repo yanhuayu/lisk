@@ -1,8 +1,19 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../functional.js');
-
-var expect = require('chai').expect;
+require('../functional.js');
 var Promise = require('bluebird');
 
 var apiHelpers = require('../../common/helpers/api');
@@ -13,7 +24,7 @@ function confirmation (goodTransactions, badTransactions, pendingMultisignatures
 	describe('after transactions get confirmed', function () {
 
 		before(function () {
-			return waitFor.confirmations(test._.map(goodTransactions, 'id'));
+			return waitFor.confirmations(_.map(goodTransactions, 'id'));
 		});
 
 		it('bad transactions should not be confirmed', function () {
@@ -22,7 +33,7 @@ function confirmation (goodTransactions, badTransactions, pendingMultisignatures
 					'id=' + transaction.id
 				];
 				return apiHelpers.getTransactionsPromise(params).then(function (res) {
-					res.body.data.should.have.length(0);
+					expect(res.body.data).to.have.length(0);
 				});
 			});
 		});
@@ -30,7 +41,7 @@ function confirmation (goodTransactions, badTransactions, pendingMultisignatures
 		it('good transactions should not be unconfirmed', function () {
 			return Promise.map(goodTransactions, function (transaction) {
 				return apiHelpers.getUnconfirmedTransactionPromise(transaction.id).then(function (res) {
-					res.body.data.should.be.empty;
+					expect(res.body.data).to.be.empty;
 				});
 			});
 		});
@@ -41,7 +52,7 @@ function confirmation (goodTransactions, badTransactions, pendingMultisignatures
 					'id=' + transaction.id
 				];
 				return apiHelpers.getTransactionsPromise(params).then(function (res) {
-					res.body.data.should.have.length(1);
+					expect(res.body.data).to.have.length(1);
 				});
 			});
 		});
@@ -54,8 +65,8 @@ function confirmation (goodTransactions, badTransactions, pendingMultisignatures
 					];
 
 					return apiHelpers.getPendingMultisignaturesPromise(params).then(function (res) {
-						res.body.data.should.have.length(1);
-						res.body.data[0].id.should.be.equal(transaction.id);
+						expect(res.body.data).to.have.length(1);
+						expect(res.body.data[0].id).to.be.equal(transaction.id);
 					});
 				});
 			});
@@ -66,7 +77,7 @@ function confirmation (goodTransactions, badTransactions, pendingMultisignatures
 						'id=' + transaction.id
 					];
 					return apiHelpers.getTransactionsPromise(params).then(function (res) {
-						res.body.data.should.have.length(0);
+						expect(res.body.data).to.have.length(0);
 					});
 				});
 			});

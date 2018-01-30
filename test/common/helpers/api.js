@@ -1,17 +1,27 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
-
-var test = require('../../test');
 
 var lisk = require('lisk-js');
 var Promise = require('bluebird');
 
 var accountFixtures = require('../../fixtures/accounts');
 var swaggerSpec = require('../../common/swaggerSpec');
-var _ = test._;
 
 var http = {
 	abstractRequest: function (options, done) {
-		var request = test.api[options.verb.toLowerCase()](options.path);
+		var request = __testContext.api[options.verb.toLowerCase()](options.path);
 
 		request.set('Accept', 'application/json');
 		request.expect(function (response) {
@@ -25,15 +35,15 @@ var http = {
 		}
 
 		var verb = options.verb.toUpperCase();
-		test.debug(['> Path:'.grey, verb, options.path].join(' '));
+		__testContext.debug(['> Path:'.grey, verb, options.path].join(' '));
 		if (verb === 'POST' || verb === 'PUT') {
-			test.debug(['> Data:'.grey, JSON.stringify(options.params)].join(' '));
+			__testContext.debug(['> Data:'.grey, JSON.stringify(options.params)].join(' '));
 		}
 
 		if (done) {
 			request.end(function (err, res) {
-				test.debug('> Status:'.grey, JSON.stringify(res ? res.statusCode : ''));
-				test.debug('> Response:'.grey, JSON.stringify(res ? res.body : err));
+				__testContext.debug('> Status:'.grey, JSON.stringify(res ? res.statusCode : ''));
+				__testContext.debug('> Response:'.grey, JSON.stringify(res ? res.body : err));
 				done(err, res);
 			});
 		} else {
@@ -137,8 +147,8 @@ function normalizeTransactionObject (transaction) {
 	if (_.isObject(transaction)) {
 		transaction = _.cloneDeep(transaction);
 
-		transaction.recipientAddress = transaction.recipientId || '';
-		transaction.senderAddress = transaction.senderId || '';
+		transaction.recipientId = transaction.recipientId || '';
+		transaction.senderId = transaction.senderId || '';
 
 		if (_.has(transaction, 'amount')) {
 			transaction.amount = transaction.amount.toString();
@@ -147,27 +157,26 @@ function normalizeTransactionObject (transaction) {
 		if (_.has(transaction, 'fee')) {
 			transaction.fee = transaction.fee.toString();
 		}
-
-		delete transaction.recipientId;
-		delete transaction.senderId;
 	}
 	return transaction;
 }
+
+var postTransactionsEndpoint = new swaggerSpec('POST /transactions');
 
 function sendTransactionPromise (transaction, expectedStatusCode) {
 	expectedStatusCode = expectedStatusCode || 200;
 
 	transaction = normalizeTransactionObject(transaction);
 
-	return new swaggerSpec('POST /transactions').makeRequest({transactions: [transaction]}, expectedStatusCode);
+	return postTransactionsEndpoint.makeRequest({transactions: [transaction]}, expectedStatusCode);
 }
 
 function sendTransactionsPromise (transactions, expectedStatusCode) {
 	expectedStatusCode = expectedStatusCode || 200;
 
-	transactions = _.map(transactions, normalizeTransactionObject);
-
-	return new swaggerSpec('POST /transactions').makeRequest({transactions: transactions}, expectedStatusCode);
+	return Promise.map(transactions, function (transaction) {
+		return sendTransactionPromise(transaction, expectedStatusCode);
+	});
 }
 
 function sendSignature (signature, transaction, cb) {
@@ -259,8 +268,8 @@ function getBlocks (params, cb) {
  * @param {string} param - Param name to check
  */
 function expectSwaggerParamError (res, param) {
-	res.body.message.should.be.eql('Validation errors');
-	res.body.errors.map(function (p) { return p.name; }).should.contain(param);
+	expect(res.body.message).to.be.eql('Validation errors');
+	expect(res.body.errors.map(function (p) { return p.name; })).to.contain(param);
 }
 
 /**
@@ -335,5 +344,6 @@ module.exports = {
 	getAccountsPromise: getAccountsPromise,
 	getBlocksPromise: getBlocksPromise,
 	expectSwaggerParamError: expectSwaggerParamError,
-	createSignatureObject: createSignatureObject
+	createSignatureObject: createSignatureObject,
+	normalizeTransactionObject: normalizeTransactionObject
 };

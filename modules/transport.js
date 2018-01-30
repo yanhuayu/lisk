@@ -1,10 +1,21 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var async = require('async');
 var crypto = require('crypto');
-var extend = require('extend');
 var ip = require('ip');
-var zlib = require('zlib');
 
 var Broadcaster = require('../logic/broadcaster.js');
 var bignum = require('../helpers/bignum.js');
@@ -45,15 +56,18 @@ function Transport (cb, scope) {
 		logic: {
 			block: scope.logic.block,
 			transaction: scope.logic.transaction,
-			peers: scope.logic.peers,
+			peers: scope.logic.peers
 		},
 		config: {
 			peers: {
 				options: {
-					timeout: scope.config.peers.options.timeout,
-				},
+					timeout: scope.config.peers.options.timeout
+				}
 			},
-		},
+			forging: {
+				force: scope.config.forging.force
+			}
+		}
 	};
 	self = this;
 
@@ -67,26 +81,6 @@ function Transport (cb, scope) {
 
 	setImmediate(cb, null, self);
 }
-
-// Private methods
-/**
- * Creates a sha256 hash based on input object.
- * @private
- * @implements {crypto.createHash}
- * @implements {bignum.fromBuffer}
- * @param {Object} obj
- * @return {string} Buffer array to string
- */
-__private.hashsum = function (obj) {
-	var buf = Buffer.from(JSON.stringify(obj), 'utf8');
-	var hashdig = crypto.createHash('sha256').update(buf).digest();
-	var temp = Buffer.alloc(8);
-	for (var i = 0; i < 8; i++) {
-		temp[i] = hashdig[7 - i];
-	}
-
-	return bignum.fromBuffer(temp).toString();
-};
 
 /**
  * Removes a peer based on ip and port.
@@ -156,7 +150,7 @@ __private.receiveSignatures = function (query, cb) {
  * @return {setImmediateCallback} cb | error messages
  */
 __private.receiveSignature = function (query, cb) {
-	library.schema.validate(query, definitions.WSSignature, function (err) {
+	library.schema.validate(query, definitions.Signature, function (err) {
 		if (err) {
 			return setImmediate(cb, 'Invalid signature body ' + err[0].message);
 		}
@@ -198,8 +192,7 @@ __private.receiveTransactions = function (query, peer, extraLogMessage, cb) {
 			if (err) {
 				library.logger.debug(err, transaction);
 			}
-
-			return setImmediate(eachSeriesCb);
+			return setImmediate(eachSeriesCb, err);
 		});
 	}, cb);
 };
@@ -269,16 +262,13 @@ Transport.prototype.headers = function (headers) {
 /**
  * Returns true if broadcaster consensus is less than minBroadhashConsensus.
  * Returns false if consensus is undefined.
- * @param {number} [modules.peers.getConsensus()]
  * @return {boolean}
  */
-Transport.prototype.poorConsensus = function (consensus) {
-	var consensus = consensus || modules.peers.getConsensus();
-	if (consensus === undefined) {
+Transport.prototype.poorConsensus = function () {
+	if (library.config.forging.force) {
 		return false;
-	} else {
-		return (consensus < constants.minBroadhashConsensus);
 	}
+	return modules.peers.calculateConsensus() < constants.minBroadhashConsensus;
 };
 
 /**
@@ -369,7 +359,7 @@ Transport.prototype.onUnconfirmedTransaction = function (transaction, broadcast)
  * @param {Object} broadcast
  * @emits blocks/change
  */
-Transport.prototype.onNewBlock = function (block, broadcast) {
+Transport.prototype.onBroadcastBlock = function (block, broadcast) {
 	if (broadcast) {
 		modules.system.update(function () {
 			if (__private.broadcaster.maxRelays(block)) {
@@ -381,7 +371,7 @@ Transport.prototype.onNewBlock = function (block, broadcast) {
 				if (!peers || peers.length === 0) {
 					return library.logger.debug('Broadcasting block aborted - active peer list empty');
 				}
-				async.each(peers.filter(function (peer) { return peer.state === Peer.STATE.CONNECTED; }), function (peer, cb) {
+				async.each(peers, function (peer, cb) {
 					peer.rpc.updateMyself(library.logic.peers.me(), function (err) {
 						if (err) {
 							library.logger.debug('Failed to notify peer about self',  err);
@@ -515,7 +505,16 @@ Transport.prototype.shared = {
 	},
 
 	status: function (req, cb) {
-		return setImmediate(cb, null, {success: true, height: modules.system.getHeight(), broadhash: modules.system.getBroadhash(), nonce: modules.system.getNonce()});
+		var headers = modules.system.headers();
+		return setImmediate(cb, null, {
+			success: true,
+			height: headers.height,
+			broadhash: headers.broadhash,
+			nonce: headers.nonce,
+			httpPort: headers.httpPort,
+			version: headers.version,
+			os: headers.os
+		});
 	},
 
 	postSignatures: function (query, cb) {
@@ -561,7 +560,7 @@ Transport.prototype.shared = {
 	},
 
 	postTransactions: function (query, cb) {
-		library.schema.validate(query, definitions.WSTransactionsReqeuest, function (err) {
+		library.schema.validate(query, definitions.WSTransactionsRequest, function (err) {
 			if (err) {
 				return setImmediate(cb, null, {success: false, message: err});
 			}

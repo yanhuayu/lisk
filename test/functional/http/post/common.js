@@ -1,7 +1,20 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
+require('../../functional.js');
 var lisk = require('lisk-js');
-var expect = require('chai').expect;
 
 var typesRepresentatives = require('../../../fixtures/typesRepresentatives');
 var accountFixtures = require('../../../fixtures/accounts');
@@ -49,7 +62,7 @@ function invalidAssets (option, badTransactions) {
 				var expectedResponse = (test.expectation === 'object' && test.description !== 'date' ? errorCodes.PROCESSING_ERROR : errorCodes.BAD_REQUEST);
 
 				return apiHelpers.sendTransactionPromise(transaction, expectedResponse).then(function (res) {
-					res.body.message.should.not.be.empty;
+					expect(res.body.message).to.not.be.empty;
 					badTransactions.push(transaction);
 				});
 			});
@@ -59,7 +72,7 @@ function invalidAssets (option, badTransactions) {
 			delete transaction.asset;
 
 			return apiHelpers.sendTransactionPromise(transaction, errorCodes.BAD_REQUEST).then(function (res) {
-				res.body.message.should.not.be.empty;
+				expect(res.body.message).to.not.be.empty;
 				badTransactions.push(transaction);
 			});
 		});
@@ -72,7 +85,7 @@ function invalidAssets (option, badTransactions) {
 				transaction.asset[option] = test.input;
 
 				return apiHelpers.sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.not.be.empty;
+					expect(res.body.message).to.not.be.empty;
 					badTransactions.push(transaction);
 				});
 			});
@@ -82,7 +95,7 @@ function invalidAssets (option, badTransactions) {
 			delete transaction.asset[option];
 
 			return apiHelpers.sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-				res.body.message.should.not.be.empty;
+				expect(res.body.message).to.not.be.empty;
 				badTransactions.push(transaction);
 			});
 		});

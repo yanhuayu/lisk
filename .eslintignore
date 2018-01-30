@@ -6,5 +6,5 @@ release
 ssl
 stacktrace*
 tmp
-helpers/bignum.js
 sql
+docs/jsdoc

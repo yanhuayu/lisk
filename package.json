@@ -1,31 +1,49 @@
 {
   "name": "lisk",
   "version": "0.9.8",
+  "description": "Lisk blockchain application platform",
+  "author": "Lisk Foundation <admin@lisk.io>, lightcurve GmbH <admin@lightcurve.io>",
+  "license": "GPL-3.0",
   "private": true,
+  "keywords": [
+    "cryptocurrency",
+    "blockchain",
+    "lisk",
+    "nodejs",
+    "javascript"
+  ],
+  "homepage": "https://github.com/LiskHQ/lisk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LiskHQ/lisk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LiskHQ/lisk/issues"
+  },
+  "engines": {
+    "node": "=6.12.3",
+    "npm": "=3.10.10"
+  },
+  "main": "app.js",
   "scripts": {
     "start": "node app.js",
     "console": "node scripts/console.js",
-    "eslint": "./node_modules/.bin/grunt eslint-nofix --verbose",
-    "fetchCoverage": "./node_modules/.bin/grunt exec:fetchCoverage --verbose",
-    "coverageReport": "./node_modules/.bin/grunt coverageReport --verbose",
+    "lint": "./node_modules/.bin/grunt eslint-nofix --verbose",
+    "cover:fetch": "./node_modules/.bin/grunt exec:fetchCoverage --verbose",
+    "cover:report": "./node_modules/.bin/grunt coverageReport --verbose",
     "test": "./node_modules/.bin/grunt",
     "grunt": "./node_modules/.bin/grunt",
     "mocha": "./node_modules/.bin/mocha",
-    "jsdoc": "jsdoc -c docs/conf.json --verbose --pedantic",
-    "create-bundles": "webpack",
-    "server-docs": "npm run jsdoc && http-server docs/jsdoc/",
-    "precommit": "npm run eslint"
-  },
-  "author": "Lisk Foundation <admin@lisk.io>, lightcurve GmbH <admin@lightcurve.io>",
-  "license": "GPL-3.0",
-  "engines": {
-    "node": ">=6.11.1 =<8.7.0",
-    "npm": ">=3.10.0 =<5.3.0"
+    "build": "webpack",
+    "docs:build": "jsdoc -c docs/conf.json --verbose --pedantic",
+    "docs:serve": "./node_modules/.bin/http-server docs/jsdoc/",
+    "precommit": "npm run lint",
+    "prepush": "npm run lint"
   },
   "dependencies": {
     "async": "=2.4.1",
     "bignumber.js": "=4.0.2",
-    "bluebird": "=3.5.0",
+    "bluebird": "=3.5.1",
     "body-parser": "=1.17.2",
     "bson": "=1.0.4",
     "bytebuffer": "=5.0.1",
@@ -42,14 +60,15 @@
     "express-rate-limit": "=2.8.0",
     "extend": "=3.0.1",
     "find": "=0.2.7",
+    "fs-extra": "=5.0.0",
     "ip": "=1.1.5",
     "json-schema": "=0.2.3",
     "json-sql": "LiskHQ/json-sql#6aa525c580f49c9a00e1814721e76764a4c9e0bb",
     "lodash": "=4.17.4",
     "method-override": "=2.3.9",
-    "pg-monitor": "=0.8.2",
-    "pg-native": "=1.10.1",
-    "pg-promise": "=6.3.5",
+    "pg-monitor": "=0.8.5",
+    "pg-native": "=2.2.0",
+    "pg-promise": "=7.4.1",
     "popsicle": "=9.1.0",
     "randomstring": "=1.1.5",
     "redis": "=2.7.1",
@@ -82,6 +101,7 @@
     "grunt-eslint": "=20.0.0",
     "grunt-exec": "=2.0.0",
     "grunt-obfuscator": "=0.1.0",
+    "http-server": "=0.11.1",
     "husky": "=0.14.3",
     "istanbul": "=0.4.5",
     "istanbul-middleware": "=0.2.2",

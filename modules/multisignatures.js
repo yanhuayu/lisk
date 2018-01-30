@@ -1,3 +1,16 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var async = require('async');
@@ -68,11 +81,11 @@ Multisignatures.prototype.processSignature = function (transaction, cb) {
 	if (!transaction) {
 		return setImmediate(cb, 'Unable to process signature. Signature is undefined.');
 	}
-	var multisignatureTransaction = modules.transactions.getMultisignatureTransaction(transaction.transaction);
+	var multisignatureTransaction = modules.transactions.getMultisignatureTransaction(transaction.transactionId);
 
 	function done (cb) {
 		library.balancesSequence.add(function (cb) {
-			var multisignatureTransaction = modules.transactions.getMultisignatureTransaction(transaction.transaction);
+			var multisignatureTransaction = modules.transactions.getMultisignatureTransaction(transaction.transactionId);
 
 			if (!multisignatureTransaction) {
 				return setImmediate(cb, 'Transaction not found');
@@ -90,7 +103,7 @@ Multisignatures.prototype.processSignature = function (transaction, cb) {
 					multisignatureTransaction.signatures.push(transaction.signature);
 					multisignatureTransaction.ready = Multisignature.prototype.ready(multisignatureTransaction, sender);
 
-					library.bus.message('signature', {transaction: transaction.transaction, signature: transaction.signature}, true);
+					library.bus.message('signature', transaction, true);
 					return setImmediate(cb);
 				}
 			});
@@ -175,9 +188,8 @@ Multisignatures.prototype.getGroup = function (address, cb) {
 
 	async.series({
 		getAccount: function (seriesCb) {
-			var multiSigFilters = Object.assign({}, {address: address}, {multimin: {$gt: 0}});
 
-			library.logic.account.get(multiSigFilters, function (err, account) {
+			library.logic.account.getMultiSignature({address: address}, function (err, account) {
 				if (err) {
 					return setImmediate(seriesCb, err);
 				}
@@ -201,14 +213,14 @@ Multisignatures.prototype.getGroup = function (address, cb) {
 			});
 		},
 		getMembers: function (seriesCb) {
-			library.db.multisignatures.getMultisignatureMemberPublicKeys(scope.group.address).then(function (memberAccountKeys) {
+			library.db.multisignatures.getMemberPublicKeys(scope.group.address).then(function (memberAccountKeys) {
 				var addresses = [];
 
 				memberAccountKeys.forEach(function (key) {
 					addresses.push(modules.accounts.generateAddressByPublicKey(key));
 				});
 
-				modules.accounts.getAccounts({address: { $in: addresses}}, ['address', 'publicKey', 'secondPublicKey'], function (err, accounts) {
+				modules.accounts.getAccounts({address: addresses}, ['address', 'publicKey', 'secondPublicKey'], function (err, accounts) {
 					accounts.forEach(function (account) {
 						scope.group.members.push({
 							address: account.address,
@@ -306,7 +318,7 @@ Multisignatures.prototype.shared = {
 				});
 			},
 			getGroupAccountIds: function (seriesCb) {
-				library.db.multisignatures.getMultisignatureGroupIds(scope.targetAccount.publicKey).then(function (groupAccountIds) {
+				library.db.multisignatures.getGroupIds(scope.targetAccount.publicKey).then(function (groupAccountIds) {
 					scope.groups = [];
 
 					async.each(groupAccountIds, function (groupId, callback){

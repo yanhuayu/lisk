@@ -1,7 +1,19 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../../functional.js');
-
+require('../../functional.js');
 var genesisDelegates = require('../../../data/genesisDelegates.json');
 
 var swaggerEndpoint = require('../../../common/swaggerSpec');
@@ -19,8 +31,8 @@ describe('PUT /node/status/forging', function () {
 			if(!res.body.data[0].forging) {
 				return toggleForgingEndpoint.makeRequest({data: {publicKey: validDelegate.publicKey, decryptionKey: validDelegate.key}}, 200)
 					.then(function (res) {
-						res.body.data[0].publicKey.should.be.eql(validDelegate.publicKey);
-						res.body.data[0].forging.should.be.true;
+						expect(res.body.data[0].publicKey).to.be.eql(validDelegate.publicKey);
+						expect(res.body.data[0].forging).to.be.true;
 					});
 			}
 		});
@@ -43,7 +55,7 @@ describe('PUT /node/status/forging', function () {
 		};
 
 		return toggleForgingEndpoint.makeRequest({data: params}, 404).then(function (res) {
-			res.body.message.should.contains('not found');
+			expect(res.body.message).to.contains('not found');
 		});
 	});
 
@@ -54,7 +66,7 @@ describe('PUT /node/status/forging', function () {
 		};
 
 		return toggleForgingEndpoint.makeRequest({data: params}, 404).then(function (res) {
-			res.body.message.should.contain('Invalid key and public key combination');
+			expect(res.body.message).to.contain('Invalid key and public key combination');
 		});
 	});
 
@@ -65,8 +77,8 @@ describe('PUT /node/status/forging', function () {
 		};
 
 		return toggleForgingEndpoint.makeRequest({data: params}, 200).then(function (res) {
-			res.body.data.should.have.length(1);
-			res.body.data[0].publicKey.should.be.eql(validDelegate.publicKey);
+			expect(res.body.data).to.have.length(1);
+			expect(res.body.data[0].publicKey).to.be.eql(validDelegate.publicKey);
 		});
 	});
 
@@ -80,8 +92,8 @@ describe('PUT /node/status/forging', function () {
 			var currentStatus = res.body.data[0].forging;
 
 			return toggleForgingEndpoint.makeRequest({data: params}, 200).then(function (res) {
-				res.body.data[0].publicKey.should.eql(validDelegate.publicKey);
-				res.body.data[0].forging.should.not.eql(currentStatus);
+				expect(res.body.data[0].publicKey).to.eql(validDelegate.publicKey);
+				expect(res.body.data[0].forging).to.not.eql(currentStatus);
 			});
 		});
 	});

@@ -1,8 +1,20 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var apiCodes = require('../../helpers/apiCodes.js');
 var ApiError = require('../../helpers/apiError.js');
-var BlockReward = require('../../logic/blockReward.js');
 var constants = require('../../helpers/constants.js');
 var sortBy = require('../../helpers/sort_by.js').sortBy;
 
@@ -31,7 +43,6 @@ function API (logger, db, block, schema, dbSequence) {
 		}
 	};
 	self = this;
-	__private.blockReward = new BlockReward();
 	library.logger.trace('Blocks->API: Submodule initialized.');
 	return self;
 }

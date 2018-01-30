@@ -1,12 +1,21 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../functional.js');
-
-var chai = require('chai');
-var expect = require('chai').expect;
+require('../functional.js');
 var express = require('express');
 var randomstring = require('randomstring');
-var sinon = require('sinon');
 var MasterWAMPServer = require('wamp-socket-cluster/MasterWAMPServer');
 
 var config = require('../../data/config.json');
@@ -27,7 +36,7 @@ describe('ClientRPCStub', function () {
 
 	before(function () {
 		socketClusterMock = {
-			on: sinon.spy()
+			on: sinonSandbox.spy()
 		};
 		wsRPC.setServer(new MasterWAMPServer(socketClusterMock));
 		// Register RPC

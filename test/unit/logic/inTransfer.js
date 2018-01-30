@@ -1,12 +1,20 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';/*eslint*/
 
 var crypto = require('crypto');
-var _  = require('lodash');
-
-var expect = require('chai').expect;
 var rewire = require('rewire');
-var sinon   = require('sinon');
-
 
 var ed = require('../../../helpers/ed');
 var constants = require('../../../helpers/constants');
@@ -33,7 +41,7 @@ var validSender = {
 var senderHash = crypto.createHash('sha256').update(validSender.password, 'utf8').digest();
 var senderKeypair = ed.makeKeypair(senderHash);
 
-var validTransaction =  { 
+var validTransaction =  {
 	id: '2273003018673898961',
 	height: 843,
 	blockId: '11870363750006389009',
@@ -86,31 +94,41 @@ describe('inTransfer', function () {
 	var dbStub;
 	var sharedStub;
 	var accountsStub;
+	var blocksStub;
 
 	var trs;
-	var rawTrs; 
+	var rawTrs;
 	var sender;
 	var dummyBlock;
 
 	beforeEach(function () {
 		dbStub = {
 			dapps: {
-				countByTransactionId: sinon.stub().resolves(),
-				countByOutTransactionId: sinon.stub().resolves(),
-				getExisting: sinon.stub().resolves(),
-				list: sinon.stub().resolves(),
-				getGenesis: sinon.stub().resolves()
+				countByTransactionId: sinonSandbox.stub().resolves(),
+				countByOutTransactionId: sinonSandbox.stub().resolves(),
+				getExisting: sinonSandbox.stub().resolves(),
+				list: sinonSandbox.stub().resolves(),
+				getGenesis: sinonSandbox.stub().resolves()
 			}
 		};
 		sharedStub = {
-			getGenesis: sinon.stub().callsArgWith(1, null, validGetGensisResult)
+			getGenesis: sinonSandbox.stub().callsArgWith(1, null, validGetGensisResult)
 		};
 		accountsStub = {
-			mergeAccountAndGet: sinon.stub().callsArg(1),
-			getAccount: sinon.stub()
+			mergeAccountAndGet: sinonSandbox.stub().callsArg(1),
+			getAccount: sinonSandbox.stub()
+		};
+		dummyBlock = {
+			id: '9314232245035524467',
+			height: 1
+		};
+		blocksStub = {
+			lastBlock: {
+				get: sinonSandbox.stub().returns(dummyBlock)
+			}
 		};
 		inTransfer = new InTransfer(dbStub, modulesLoader.scope.schema);
-		inTransfer.bind(accountsStub, sharedStub);
+		inTransfer.bind(accountsStub, blocksStub, sharedStub);
 	});
 
 	beforeEach(function () {
@@ -150,7 +168,7 @@ describe('inTransfer', function () {
 		var shared;
 
 		beforeEach(function () {
-			inTransfer.bind(accountsStub, sharedStub);
+			inTransfer.bind(accountsStub, blocksStub, sharedStub);
 			modules = InTransfer.__get__('modules');
 			shared = InTransfer.__get__('shared');
 		});
@@ -159,6 +177,10 @@ describe('inTransfer', function () {
 
 			it('should assign accounts', function () {
 				expect(modules).to.have.property('accounts').eql(accountsStub);
+			});
+
+			it('should assign blocks', function () {
+				expect(modules).to.have.property('blocks').eql(blocksStub);
 			});
 		});
 
@@ -176,12 +198,18 @@ describe('inTransfer', function () {
 
 	describe('verify', function () {
 
+		var modules;
+
+		beforeEach(function () {
+			inTransfer.bind(accountsStub, blocksStub, sharedStub);
+		});
+
 		describe('when trs.recipientId exists', function () {
 
-			it('should call callback with error = "Invalid recipient"', function (done) {
+			it('should call callback with error = "Transaction type 6 is frozen"', function (done) {
 				trs.recipientId = '4835566122337813671L';
 				inTransfer.verify(trs, sender, function (err) {
-					expect(err).to.equal('Invalid recipient');
+					expect(err).to.equal('Transaction type 6 is frozen');
 					done();
 				});
 			});
@@ -189,10 +217,10 @@ describe('inTransfer', function () {
 
 		describe('when trs.amount does not exist', function () {
 
-			it('should call callback with error = "Invalid transaction amount"', function (done) {
+			it('should call callback with error = "Transaction type 6 is frozen"', function (done) {
 				trs.amount = undefined;
 				inTransfer.verify(trs, sender, function (err) {
-					expect(err).to.equal('Invalid transaction amount');
+					expect(err).to.equal('Transaction type 6 is frozen');
 					done();
 				});
 			});
@@ -200,10 +228,10 @@ describe('inTransfer', function () {
 
 		describe('when trs.amount = 0', function () {
 
-			it('should call callback with error = "Invalid transaction amount"', function (done) {
+			it('should call callback with error = "Transaction type 6 is frozen"', function (done) {
 				trs.amount = 0;
 				inTransfer.verify(trs, sender, function (err) {
-					expect(err).to.equal('Invalid transaction amount');
+					expect(err).to.equal('Transaction type 6 is frozen');
 					done();
 				});
 			});
@@ -211,10 +239,10 @@ describe('inTransfer', function () {
 
 		describe('when trs.asset does not exist', function () {
 
-			it('should call callback with error = "Invalid transaction asset"', function (done) {
+			it('should call callback with error = "Transaction type 6 is frozen"', function (done) {
 				trs.asset = undefined;
 				inTransfer.verify(trs, sender, function (err) {
-					expect(err).to.equal('Invalid transaction asset');
+					expect(err).to.equal('Transaction type 6 is frozen');
 					done();
 				});
 			});
@@ -222,10 +250,10 @@ describe('inTransfer', function () {
 
 		describe('when trs.asset.inTransfer does not exist', function () {
 
-			it('should call callback with error = "Invalid transaction asset"', function (done) {
+			it('should call callback with error = "Transaction type 6 is frozen"', function (done) {
 				trs.asset.inTransfer = undefined;
 				inTransfer.verify(trs, sender, function (err) {
-					expect(err).to.equal('Invalid transaction asset');
+					expect(err).to.equal('Transaction type 6 is frozen');
 					done();
 				});
 			});
@@ -233,10 +261,10 @@ describe('inTransfer', function () {
 
 		describe('when trs.asset.inTransfer = 0', function () {
 
-			it('should call callback with error = "Invalid transaction asset"', function (done) {
+			it('should call callback with error = "Transaction type 6 is frozen"', function (done) {
 				trs.asset.inTransfer = 0;
 				inTransfer.verify(trs, sender, function (err) {
-					expect(err).to.equal('Invalid transaction asset');
+					expect(err).to.equal('Transaction type 6 is frozen');
 					done();
 				});
 			});
@@ -244,21 +272,21 @@ describe('inTransfer', function () {
 
 		it('should call library.db.dapps.countByTransactionId', function (done) {
 			inTransfer.verify(trs, sender, function () {
-				expect(dbStub.dapps.countByTransactionId.calledOnce).to.be.true;
+				expect(dbStub.dapps.countByTransactionId.calledOnce).to.be.false;
 				done();
 			});
 		});
 
 		it('should call library.db.dapps.countByTransactionId with trs.asset.inTransfer.dappId', function (done) {
 			inTransfer.verify(trs, sender, function () {
-				expect(dbStub.dapps.countByTransactionId.calledWith(trs.asset.inTransfer.dappId)).to.be.true;
+				expect(dbStub.dapps.countByTransactionId.calledWith(trs.asset.inTransfer.dappId)).to.be.false;
 				done();
 			});
 		});
 
 		it('should call library.db.dapps.countByTransactionId with trs.asset.inTransfer.dappId', function (done) {
 			inTransfer.verify(trs, sender, function () {
-				expect(dbStub.dapps.countByTransactionId.calledWith(trs.asset.inTransfer.dappId)).to.be.true;
+				expect(dbStub.dapps.countByTransactionId.calledWith(trs.asset.inTransfer.dappId)).to.be.false;
 				done();
 			});
 		});
@@ -266,7 +294,7 @@ describe('inTransfer', function () {
 		describe('when library.db.one fails', function () {
 
 			beforeEach(function () {
-				dbStub.dapps.countByTransactionId = sinon.stub().rejects('Rejection error');
+				dbStub.dapps.countByTransactionId = sinonSandbox.stub().rejects('Rejection error');
 			});
 
 			it('should call callback with error', function (done) {
@@ -282,12 +310,12 @@ describe('inTransfer', function () {
 			describe('when dapp does not exist', function () {
 
 				beforeEach(function () {
-					dbStub.dapps.countByTransactionId = sinon.stub().resolves({count: 0});
+					dbStub.dapps.countByTransactionId = sinonSandbox.stub().resolves(0);
 				});
 
-				it('should call callback with error', function (done) {
+				it('should call callback with error = "Transaction type 6 is frozen"', function (done) {
 					inTransfer.verify(trs, sender, function (err) {
-						expect(err).to.equal('Application not found: ' + trs.asset.inTransfer.dappId);
+						expect(err).to.equal('Transaction type 6 is frozen');
 						done();
 					});
 				});
@@ -296,12 +324,12 @@ describe('inTransfer', function () {
 			describe('when dapp exists', function () {
 
 				beforeEach(function () {
-					dbStub.dapps.countByTransactionId = sinon.stub().resolves({count: 1});
+					dbStub.dapps.countByTransactionId = sinonSandbox.stub().resolves(1);
 				});
 
-				it('should call callback with error = undefined', function (done) {
+				it('should call callback with error = "Transaction type 6 is frozen"', function (done) {
 					inTransfer.verify(trs, sender, function (err) {
-						expect(err).to.be.undefined;
+						expect(err).to.equal('Transaction type 6 is frozen');
 						done();
 					});
 				});
@@ -379,7 +407,7 @@ describe('inTransfer', function () {
 		describe('when shared.getGenesis fails', function () {
 
 			beforeEach(function () {
-				sharedStub.getGenesis = sinon.stub.callsArgWith(1, 'getGenesis error');
+				sharedStub.getGenesis = sinonSandbox.stub().callsArgWith(1, 'getGenesis error');
 			});
 
 			it('should call callback with error', function () {
@@ -392,7 +420,7 @@ describe('inTransfer', function () {
 		describe('when shared.getGenesis succeeds', function () {
 
 			beforeEach(function () {
-				sharedStub.getGenesis = sinon.stub.callsArg(1);
+				sharedStub.getGenesis = sinonSandbox.stub().callsArg(1);
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet', function () {
@@ -400,50 +428,50 @@ describe('inTransfer', function () {
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet with address = dapp.authorId', function () {
-				expect(accountsStub.mergeAccountAndGet.calledWith(sinon.match({address: validGetGensisResult.authorId}))).to.be.true;
+				expect(accountsStub.mergeAccountAndGet.calledWith(sinonSandbox.match({address: validGetGensisResult.authorId}))).to.be.true;
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet with balance = trs.amount', function () {
-				expect(accountsStub.mergeAccountAndGet.calledWith(sinon.match({balance: trs.amount}))).to.be.true;
+				expect(accountsStub.mergeAccountAndGet.calledWith(sinonSandbox.match({balance: trs.amount}))).to.be.true;
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet with u_balance = trs.amount', function () {
-				expect(accountsStub.mergeAccountAndGet.calledWith(sinon.match({u_balance: trs.amount}))).to.be.true;
+				expect(accountsStub.mergeAccountAndGet.calledWith(sinonSandbox.match({u_balance: trs.amount}))).to.be.true;
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet with blockId = block.id', function () {
-				expect(accountsStub.mergeAccountAndGet.calledWith(sinon.match({blockId: dummyBlock.id}))).to.be.true;
+				expect(accountsStub.mergeAccountAndGet.calledWith(sinonSandbox.match({blockId: dummyBlock.id}))).to.be.true;
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet with round = slots.calcRound result', function () {
-				expect(accountsStub.mergeAccountAndGet.calledWith(sinon.match({round: slots.calcRound(dummyBlock.height)}))).to.be.true;
+				expect(accountsStub.mergeAccountAndGet.calledWith(sinonSandbox.match({round: slots.calcRound(dummyBlock.height)}))).to.be.true;
+			});
+		});
+
+		describe('when modules.accounts.mergeAccountAndGet fails', function () {
+
+			beforeEach(function () {
+				accountsStub.mergeAccountAndGet = sinonSandbox.stub().callsArgWith(1, 'mergeAccountAndGet error');
 			});
 
-			describe('when modules.accounts.mergeAccountAndGet fails', function () {
-
-				beforeEach(function () {
-					accountsStub.mergeAccountAndGet = sinon.stub().callsArgWith(1, 'mergeAccountAndGet error');
+			it('should call callback with error', function () {
+				inTransfer.apply(trs, dummyBlock, sender, function (err) {
+					expect(err).not.to.be.empty;
 				});
-				
-				it('should call callback with error', function () {
-					inTransfer.apply(trs, dummyBlock, sender, function (err) {
-						expect(err).not.to.be.empty;
-					});
+			});
+		});
+
+		describe('when modules.accounts.mergeAccountAndGet succeeds', function () {
+
+			it('should call callback with error = undefined', function () {
+				inTransfer.apply(trs, dummyBlock, sender, function (err) {
+					expect(err).to.be.undefined;
 				});
 			});
 
-			describe('when modules.accounts.mergeAccountAndGet succeeds', function () {
-
-				it('should call callback with error = undefined', function () {
-					inTransfer.apply(trs, dummyBlock, sender, function (err) {
-						expect(err).to.be.undefined;
-					});
-				});
-
-				it('should call callback with result = undefined', function () {
-					inTransfer.apply(trs, dummyBlock, sender, function (err, res) {
-						expect(res).to.be.undefined;
-					});
+			it('should call callback with result = undefined', function () {
+				inTransfer.apply(trs, dummyBlock, sender, function (err, res) {
+					expect(res).to.be.undefined;
 				});
 			});
 		});
@@ -466,7 +494,7 @@ describe('inTransfer', function () {
 		describe('when shared.getGenesis fails', function () {
 
 			beforeEach(function () {
-				sharedStub.getGenesis = sinon.stub.callsArgWith(1, 'getGenesis error');
+				sharedStub.getGenesis = sinonSandbox.stub().callsArgWith(1, 'getGenesis error');
 			});
 
 			it('should call callback with error', function () {
@@ -479,7 +507,7 @@ describe('inTransfer', function () {
 		describe('when shared.getGenesis succeeds', function () {
 
 			beforeEach(function () {
-				sharedStub.getGenesis = sinon.stub.callsArg(1);
+				sharedStub.getGenesis = sinonSandbox.stub().callsArg(1);
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet', function () {
@@ -487,50 +515,50 @@ describe('inTransfer', function () {
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet with address = dapp.authorId', function () {
-				expect(accountsStub.mergeAccountAndGet.calledWith(sinon.match({address: validGetGensisResult.authorId}))).to.be.true;
+				expect(accountsStub.mergeAccountAndGet.calledWith(sinonSandbox.match({address: validGetGensisResult.authorId}))).to.be.true;
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet with balance = -trs.amount', function () {
-				expect(accountsStub.mergeAccountAndGet.calledWith(sinon.match({balance: -trs.amount}))).to.be.true;
+				expect(accountsStub.mergeAccountAndGet.calledWith(sinonSandbox.match({balance: -trs.amount}))).to.be.true;
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet with u_balance = -trs.amount', function () {
-				expect(accountsStub.mergeAccountAndGet.calledWith(sinon.match({u_balance: -trs.amount}))).to.be.true;
+				expect(accountsStub.mergeAccountAndGet.calledWith(sinonSandbox.match({u_balance: -trs.amount}))).to.be.true;
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet with blockId = block.id', function () {
-				expect(accountsStub.mergeAccountAndGet.calledWith(sinon.match({blockId: dummyBlock.id}))).to.be.true;
+				expect(accountsStub.mergeAccountAndGet.calledWith(sinonSandbox.match({blockId: dummyBlock.id}))).to.be.true;
 			});
 
 			it('should call modules.accounts.mergeAccountAndGet with round = slots.calcRound result', function () {
-				expect(accountsStub.mergeAccountAndGet.calledWith(sinon.match({round: slots.calcRound(dummyBlock.height)}))).to.be.true;
+				expect(accountsStub.mergeAccountAndGet.calledWith(sinonSandbox.match({round: slots.calcRound(dummyBlock.height)}))).to.be.true;
+			});
+		});
+
+		describe('when modules.accounts.mergeAccountAndGet fails', function () {
+
+			beforeEach(function () {
+				accountsStub.mergeAccountAndGet = sinonSandbox.stub().callsArgWith(1, 'mergeAccountAndGet error');
 			});
 
-			describe('when modules.accounts.mergeAccountAndGet fails', function () {
-
-				beforeEach(function () {
-					accountsStub.mergeAccountAndGet = sinon.stub().callsArgWith(1, 'mergeAccountAndGet error');
+			it('should call callback with error', function () {
+				inTransfer.undo(trs, dummyBlock, sender, function (err) {
+					expect(err).not.to.be.empty;
 				});
+			});
+		});
 
-				it('should call callback with error', function () {
-					inTransfer.undo(trs, dummyBlock, sender, function (err) {
-						expect(err).not.to.be.empty;
-					});
+		describe('when modules.accounts.mergeAccountAndGet succeeds', function () {
+
+			it('should call callback with error = undefined', function () {
+				inTransfer.undo(trs, dummyBlock, sender, function (err) {
+					expect(err).to.be.undefined;
 				});
 			});
 
-			describe('when modules.accounts.mergeAccountAndGet succeeds', function () {
-
-				it('should call callback with error = undefined', function () {
-					inTransfer.undo(trs, dummyBlock, sender, function (err) {
-						expect(err).to.be.undefined;
-					});
-				});
-
-				it('should call callback with result = undefined', function () {
-					inTransfer.undo(trs, dummyBlock, sender, function (err, res) {
-						expect(res).to.be.undefined;
-					});
+			it('should call callback with result = undefined', function () {
+				inTransfer.undo(trs, dummyBlock, sender, function (err, res) {
+					expect(res).to.be.undefined;
 				});
 			});
 		});
@@ -577,7 +605,7 @@ describe('inTransfer', function () {
 
 		beforeEach(function () {
 			library = InTransfer.__get__('library');
-			schemaSpy = sinon.spy(library.schema, 'validate');
+			schemaSpy = sinonSandbox.spy(library.schema, 'validate');
 		});
 
 		afterEach(function () {
@@ -648,35 +676,6 @@ describe('inTransfer', function () {
 			it('should return result containing inTransfer.dappId = raw.dapp_id', function () {
 				expect(inTransfer.dbRead(rawTrs)).to.have.nested.property('inTransfer.dappId').equal(rawTrs.in_dappId);
 			});
-		});
-	});
-
-	describe('dbSave', function () {
-
-		var dbSaveResult;
-
-		beforeEach(function () {
-			dbSaveResult = inTransfer.dbSave(trs);
-		});
-
-		it('should return result containing table = "intransfer"', function () {
-			expect(dbSaveResult).to.have.property('table').equal('intransfer');
-		});
-
-		it('should return result containing fields = ["dappId", "transactionId"]', function () {
-			expect(dbSaveResult).to.have.property('fields').eql(['dappId', 'transactionId']);
-		});
-
-		it('should return result containing values', function () {
-			expect(dbSaveResult).to.have.property('values');
-		});
-
-		it('should return result containing values.dappId = trs.asset.inTransfer.dappId', function () {
-			expect(dbSaveResult).to.have.nested.property('values.dappId').equal(trs.asset.inTransfer.dappId);
-		});
-
-		it('should return result containing values.transactionId = trs.id', function () {
-			expect(dbSaveResult).to.have.nested.property('values.transactionId').equal(trs.id);
 		});
 	});
 

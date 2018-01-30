@@ -1,7 +1,17 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
-
-var expect = require('chai').expect;
-var sinon = require('sinon');
 
 var checkIpInList = require('../../../helpers/checkIpInList');
 var httpApi = require('../../../helpers/httpApi');
@@ -26,7 +36,7 @@ describe('httpApi', function () {
 	before(function () {
 		validError = {
 			message: 'validError',
-			toJson: sinon.stub()
+			toJson: sinonSandbox.stub()
 		};
 	});
 
@@ -34,30 +44,30 @@ describe('httpApi', function () {
 
 		before(function () {
 			validSendObject = {success: false, error: 'API error: ' + validError.message};
-			validNextSpy = sinon.spy();
-			spyConsoleTrace = sinon.spy(console, 'trace');
+			validNextSpy = sinonSandbox.spy();
+			spyConsoleTrace = sinonSandbox.spy(console, 'trace');
 
 			loggerMock = {
-				trace: sinon.spy(),
-				debug: sinon.spy(),
-				info:  sinon.spy(),
-				log:   sinon.spy(),
-				warn:  sinon.spy(),
-				error: sinon.spy()
+				trace: sinonSandbox.spy(),
+				debug: sinonSandbox.spy(),
+				info:  sinonSandbox.spy(),
+				log:   sinonSandbox.spy(),
+				warn:  sinonSandbox.spy(),
+				error: sinonSandbox.spy()
 			};
 			validReq = {
 				url: validUrl,
 				originalUrl: validOriginalUrl,
 				method: validMethod,
 				ip: validIp,
-				sanitize: sinon.stub(),
-				match: sinon.stub()
+				sanitize: sinonSandbox.stub(),
+				match: sinonSandbox.stub()
 			};
 			resMock = {
-				header: sinon.stub(),
-				status: sinon.stub(),
-				send: sinon.stub(),
-				setHeader: sinon.stub()
+				header: sinonSandbox.stub(),
+				status: sinonSandbox.stub(),
+				send: sinonSandbox.stub(),
+				setHeader: sinonSandbox.stub()
 			};
 			resMock.status.returns(resMock);
 		});
@@ -161,7 +171,7 @@ describe('httpApi', function () {
 			var validIsLoaded;
 
 			before(function () {
-				validIsLoaded = sinon.stub();
+				validIsLoaded = sinonSandbox.stub();
 				validSendObject = {success: false, error: 'Blockchain is loading'};
 			});
 
@@ -219,7 +229,7 @@ describe('httpApi', function () {
 			before(function () {
 				validProperty = 'url';
 				validSchema = null;
-				validCbSpy = sinon.spy();
+				validCbSpy = sinonSandbox.spy();
 			});
 
 			beforeEach(function () {
@@ -242,15 +252,15 @@ describe('httpApi', function () {
 
 				before(function () {
 					validRes = {
-						json: sinon.stub()
+						json: sinonSandbox.stub()
 					};
 					validSanitizeReport = { isValid: true };
 					validReqMock = {
-						sanitize: sinon.stub()
+						sanitize: sinonSandbox.stub()
 					};
 					validReqMock.sanitize.yields(validSanitizeError,validSanitizeReport,validSanitizeSanitized);
 					validReqMock[validProperty] = validValue;
-					validSanitizeCallback = sinon.stub();
+					validSanitizeCallback = sinonSandbox.stub();
 				});
 
 				beforeEach(function () {
@@ -319,7 +329,7 @@ describe('httpApi', function () {
 						enabled: true,
 						access: {blacklist: []}
 					},
-					api: sinon.stub()
+					api: sinonSandbox.stub()
 				};
 			});
 
@@ -334,7 +344,7 @@ describe('httpApi', function () {
 				});
 
 				it('should call checkIpInList with parameters: config.peers.access.blackList, req.ip, false', function () {
-					sinon.assert.called(checkIpInListStub);
+					sinonSandbox.assert.called(checkIpInListStub);
 					expect(checkIpInListStub.calledWith(validConfig.peers.access.blacklist,validReq.ip, false)).to.be.true;
 				});
 
@@ -388,11 +398,11 @@ describe('httpApi', function () {
 			var validErr;
 
 			before (function () {
-				validCacheCb = sinon.stub();
+				validCacheCb = sinonSandbox.stub();
 				validCache = {
-					isReady: sinon.stub(),
-					getJsonForKey: sinon.stub(),
-					setJsonForKey: sinon.stub()
+					isReady: sinonSandbox.stub(),
+					getJsonForKey: sinonSandbox.stub(),
+					setJsonForKey: sinonSandbox.stub()
 				};
 				validRes = {};
 				validErr = 'error';
@@ -482,7 +492,7 @@ describe('httpApi', function () {
 						validCachedValue = 'cachedValue';
 						validErr = false;
 						validRes = {
-							json: sinon.stub()
+							json: sinonSandbox.stub()
 						};
 						validRes.json.withArgs(validCachedValue);
 						validCache.getJsonForKey.yields(validErr, validCachedValue);
@@ -506,7 +516,7 @@ describe('httpApi', function () {
 
 		before(function () {
 			validRes = {
-				json: sinon.stub()
+				json: sinonSandbox.stub()
 			};
 		});
 
@@ -548,12 +558,12 @@ describe('httpApi', function () {
 			};
 			validError = {
 				message: 'validError',
-				toJson: sinon.stub()
+				toJson: sinonSandbox.stub()
 			};
 
 			validRes = {
-				json: sinon.stub(),
-				status: sinon.stub()
+				json: sinonSandbox.stub(),
+				status: sinonSandbox.stub()
 			};
 			validRes.status.returns(validRes);
 		});
@@ -571,7 +581,7 @@ describe('httpApi', function () {
 			before(function () {
 				validError = {
 					message: 'validError',
-					toJson: sinon.stub()
+					toJson: sinonSandbox.stub()
 				};
 			});
 
@@ -620,10 +630,10 @@ describe('httpApi', function () {
 		before(function () {
 			validRoute = null;
 			validApp = {
-				use: sinon.stub()
+				use: sinonSandbox.stub()
 			};
 			validRouter = {
-				use: sinon.stub()
+				use: sinonSandbox.stub()
 			};
 			validIsLoaded = true;
 		});

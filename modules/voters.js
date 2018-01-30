@@ -1,3 +1,16 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var _ = require('lodash');
@@ -57,7 +70,7 @@ var getVotersForDelegates = function (filters, delegate, cb) {
 };
 
 var populateVoters = function (sort, addresses, cb) {
-	modules.accounts.getAccounts({address: {$in: addresses}, sort: sort}, ['address', 'balance', 'publicKey'], cb);
+	modules.accounts.getAccounts({address: addresses, sort: sort}, ['address', 'balance', 'publicKey'], cb);
 };
 
 var getVotersCountForDelegates = function (delegate, cb) {
@@ -103,7 +116,7 @@ var getVotesForDelegates = function (filters, delegate, cb) {
 };
 
 var populateVotes = function (sort, addresses, cb) {
-	modules.accounts.getAccounts({address: {$in: addresses}, sort: sort}, ['address', 'balance', 'publicKey'], cb);
+	modules.accounts.getAccounts({address: addresses, sort: sort}, ['address', 'balance', 'publicKey', 'username'], cb);
 };
 
 /**

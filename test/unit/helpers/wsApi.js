@@ -1,23 +1,29 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var async = require('async');
-var chai = require('chai');
-var expect = require('chai').expect;
 var express = require('express');
 var randomstring = require('randomstring');
-var sinon = require('sinon');
 
-var test = require('../../test');
-
-var config = test.config;
-var _ = test._;
 var typeRepresentatives = require('../../fixtures/typesRepresentatives.js');
-
 var wsApi = require('../../../helpers/wsApi');
 var failureCodes = require('../../../api/ws/rpc/failureCodes');
-
 var WSServerMaster = require('../../common/ws/serverMaster');
 var System = require('../../../modules/system');
+
+var config = __testContext.config;
 
 describe('handshake', function () {
 
@@ -113,7 +119,7 @@ describe('handshake', function () {
 
 				describe('nonce', function  () {
 
-					var invalidTypes = _.difference(typeRepresentatives.allTypes, 
+					var invalidTypes = _.difference(typeRepresentatives.allTypes,
 						typeRepresentatives.strings
 					);
 
@@ -155,7 +161,7 @@ describe('handshake', function () {
 						return Math.floor(Math.random() * (Number.MAX_VALUE));
 					});
 
-					var invalidTypes = _.difference(typeRepresentatives.allTypes, 
+					var invalidTypes = _.difference(typeRepresentatives.allTypes,
 						typeRepresentatives.positiveIntegers,
 						typeRepresentatives.negativeIntegers,
 						typeRepresentatives.positiveNumbers,
@@ -201,7 +207,7 @@ describe('handshake', function () {
 						return randomstring.generate(64);
 					});
 
-					var invalidTypes = _.difference(typeRepresentatives.allTypes, 
+					var invalidTypes = _.difference(typeRepresentatives.allTypes,
 						typeRepresentatives.strings
 					);
 
@@ -226,7 +232,7 @@ describe('handshake', function () {
 
 				describe('version', function () {
 
-					var invalidTypes = _.difference(typeRepresentatives.allTypes, 
+					var invalidTypes = _.difference(typeRepresentatives.allTypes,
 						typeRepresentatives.strings
 					);
 

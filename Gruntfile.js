@@ -1,7 +1,22 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var moment = require('moment');
 var util = require('util');
+
+var appFile = 'app.js'; // Application file name
 
 module.exports = function (grunt) {
 	var files = [
@@ -13,7 +28,7 @@ module.exports = function (grunt) {
 		'logic/*.js',
 		'schema/**/*.js',
 		'sql/**/*.js',
-		'app.js'
+		appFile
 	];
 
 	var today = moment().format('HH:mm:ss DD/MM/YYYY');
@@ -28,8 +43,8 @@ module.exports = function (grunt) {
 	grunt.initConfig({
 		obfuscator: {
 			files: files,
-			entry: 'app.js',
-			out: 'release/app.js',
+			entry: appFile,
+			out: 'release/' + appFile,
 			strings: true,
 			root: __dirname
 		},
@@ -41,15 +56,16 @@ module.exports = function (grunt) {
 						util.format('mkdir -p %s', version_dir),
 						util.format('mkdir -p %s/logs', version_dir),
 						util.format('mkdir -p %s/pids', version_dir),
-						util.format('cp %s/app.js %s', release_dir, version_dir),
+						util.format('cp %s/%s %s', release_dir, appFile, version_dir),
 						util.format('cp %s/workersController.js %s', release_dir, version_dir),
 						util.format('cp %s/config.json %s', __dirname, version_dir),
 						util.format('cp %s/package.json %s', __dirname, version_dir),
 						util.format('cp %s/genesisBlock.json %s', __dirname, version_dir),
 						util.format('cp %s/LICENSE %s', __dirname, version_dir),
-						util.format('mkdir -p %s/sql/migrations', version_dir),
-						util.format('cp %s/sql/*.sql %s/sql/', __dirname, version_dir),
-						util.format('cp %s/sql/migrations/*.sql %s/sql/migrations/', __dirname, version_dir),
+						util.format('mkdir -p %s/sql', version_dir),
+						// The following two lines will copy all SQL files, preserving the folder structure:
+						util.format('find %s/db/sql -type d | sed "s|^.*/db/sql||" | xargs -I {} mkdir -p %s/sql{}', __dirname, version_dir),
+						util.format('find %s/db/sql -type f -name "*.sql" | sed "s|^.*/db/sql||" | xargs -I {} cp %s/db/sql{} %s/sql{}', __dirname, __dirname, version_dir)
 					].join(' && ');
 				}
 			},
@@ -67,7 +83,7 @@ module.exports = function (grunt) {
 					if (suite === 'integration') {
 						var slowTag = '';
 						if (tag !== 'slow') {
-							slowTag = '--grep @slow --invert'
+							slowTag = '--grep @slow --invert';
 						}
 						return './node_modules/.bin/_mocha --bail test/integration/index.js ' + slowTag;
 					} else {
@@ -88,7 +104,7 @@ module.exports = function (grunt) {
 			},
 
 			createBundles: {
-				command: 'npm run create-bundles',
+				command: 'npm run build',
 				maxBuffer: maxBufferSize
 			},
 
@@ -116,16 +132,7 @@ module.exports = function (grunt) {
 				format: 'codeframe',
 				fix: false
 			},
-			target: [
-				'api',
-				'helpers',
-				'modules',
-				'logic',
-				'schema',
-				'tasks',
-				'test',
-				'scripts'
-			]
+			target: '.'
 		}
 	});
 

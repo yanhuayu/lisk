@@ -1,7 +1,19 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
 var randomstring = require('randomstring');
-var sinon = require('sinon');
 var WAMPClient = require('wamp-socket-cluster/WAMPClient');
 var WAMPServer = require('wamp-socket-cluster/WAMPServer');
 var SocketCluster = require('socketcluster');
@@ -42,16 +54,16 @@ var wsServer = {
 	},
 
 	necessaryRPCEndpoints: {
-		status: sinon.stub().callsArgWith(1, {success: true, height: 1, broadhash: testConfig.nethash, nonce: testConfig.nethash}),
-		list: sinon.stub().callsArgWith(1, {peers: []}),
-		blocks:  sinon.stub().callsArgWith(1, {blocks: []}),
-		getSignatures:  sinon.stub().callsArgWith(1, {signatures: []}),
-		getTransactions:  sinon.stub().callsArgWith(1, {transactions: []}),
-		updateMyself:  sinon.stub().callsArgWith(1, null),
-		postTransactions: sinon.stub().callsArgWith(1, null),
-		postSignatures: sinon.stub().callsArgWith(1, null),
-		postBlock: sinon.stub().callsArgWith(1, sinon.stub().callsArg(1)),
-		blocksCommon: sinon.stub().callsArgWith(1, {success: true, common: null})
+		status: sinonSandbox.stub().callsArgWith(1, {success: true, height: 1, broadhash: testConfig.nethash, nonce: testConfig.nethash}),
+		list: sinonSandbox.stub().callsArgWith(1, {peers: []}),
+		blocks:  sinonSandbox.stub().callsArgWith(1, {blocks: []}),
+		getSignatures:  sinonSandbox.stub().callsArgWith(1, {signatures: []}),
+		getTransactions:  sinonSandbox.stub().callsArgWith(1, {transactions: []}),
+		updateMyself:  sinonSandbox.stub().callsArgWith(1, null),
+		postTransactions: sinonSandbox.stub().callsArgWith(1, null),
+		postSignatures: sinonSandbox.stub().callsArgWith(1, null),
+		postBlock: sinonSandbox.stub().callsArgWith(1, sinonSandbox.stub().callsArg(1)),
+		blocksCommon: sinonSandbox.stub().callsArgWith(1, {success: true, common: null})
 	},
 
 	options: {

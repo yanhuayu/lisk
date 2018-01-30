@@ -1,13 +1,22 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../../functional.js');
-
+require('../../functional.js');
 var lisk = require('lisk-js');
-var chai = require('chai');
-var should = chai.should();
 var Promise = require('bluebird');
 
-var _ = test._;
 var genesisDelegates = require('../../../data/genesisDelegates.json');
 var accountFixtures = require('../../../fixtures/accounts');
 
@@ -29,7 +38,7 @@ describe('GET /delegates', function () {
 
 		it('using no params should return genesis delegates with default limit', function () {
 			return delegatesEndpoint.makeRequest({}, 200).then(function (res) {
-				res.body.data.should.have.lengthOf(10);
+				expect(res.body.data).to.have.lengthOf(10);
 			});
 		});
 
@@ -43,7 +52,7 @@ describe('GET /delegates', function () {
 			}).then(function (res) {
 				data.push.apply(data, res.body.data);
 
-				data.should.have.lengthOf.at.least(101);
+				expect(data).to.have.lengthOf.at.least(101);
 			});
 		});
 
@@ -51,7 +60,7 @@ describe('GET /delegates', function () {
 
 			it('using no publicKey should return an empty array', function () {
 				return delegatesEndpoint.makeRequest({publicKey: ''}, 200).then(function (res) {
-					res.body.data.should.be.empty;
+					expect(res.body.data).to.be.empty;
 				});
 			});
 
@@ -63,14 +72,14 @@ describe('GET /delegates', function () {
 
 			it('using valid existing publicKey of genesis delegate should return the result', function () {
 				return delegatesEndpoint.makeRequest({publicKey: validDelegate.publicKey}, 200).then(function (res) {
-					res.body.data.should.have.length(1);
-					res.body.data[0].account.publicKey.should.be.eql(validDelegate.publicKey);
+					expect(res.body.data).to.have.length(1);
+					expect(res.body.data[0].account.publicKey).to.be.eql(validDelegate.publicKey);
 				});
 			});
 
 			it('using valid not existing publicKey should return an empty array', function () {
 				return delegatesEndpoint.makeRequest({publicKey: validNotExistingPublicKey}, 200).then(function (res) {
-					res.body.data.should.be.empty;
+					expect(res.body.data).to.be.empty;
 				});
 			});
 		});
@@ -84,20 +93,21 @@ describe('GET /delegates', function () {
 			var delegateTransaction = lisk.delegate.createDelegate(secondSecretAccount.password, secondSecretAccount.username);
 
 			before(function () {
-				return apiHelpers.sendTransactionsPromise([creditTransaction]).then(function (res) {
-					res.statusCode.should.be.eql(200);
+				return apiHelpers.sendTransactionPromise(creditTransaction).then(function (res) {
+					expect(res.statusCode).to.be.eql(200);
 					return waitFor.confirmations([creditTransaction.id]);
 				}).then(function () {
 					return apiHelpers.sendTransactionsPromise([signatureTransaction, delegateTransaction]);
 				}).then(function (res) {
-					res.statusCode.should.be.eql(200);
+					expect(res[0].statusCode).to.be.eql(200);
+					expect(res[1].statusCode).to.be.eql(200);
 					return waitFor.confirmations([signatureTransaction.id, delegateTransaction.id]);
 				});
 			});
 
-			it('using no secondPublicKey should return an empty array', function () {
+			it.only('using no secondPublicKey should return an empty array', function () {
 				return delegatesEndpoint.makeRequest({secondPublicKey: ''}, 200).then(function (res) {
-					res.body.data.should.be.empty;
+					expect(res.body.data).to.be.empty;
 				});
 			});
 
@@ -109,14 +119,14 @@ describe('GET /delegates', function () {
 
 			it('using valid existing secondPublicKey of delegate should return the result', function () {
 				return delegatesEndpoint.makeRequest({secondPublicKey: secondSecretAccount.secondPublicKey}, 200).then(function (res) {
-					res.body.data.should.have.length(1);
-					res.body.data[0].account.secondPublicKey.should.be.eql(secondSecretAccount.secondPublicKey);
+					expect(res.body.data).to.have.length(1);
+					expect(res.body.data[0].account.secondPublicKey).to.be.eql(secondSecretAccount.secondPublicKey);
 				});
 			});
 
 			it('using valid not existing secondPublicKey should return an empty array', function () {
 				return delegatesEndpoint.makeRequest({secondPublicKey: validNotExistingPublicKey}, 200).then(function (res) {
-					res.body.data.should.be.empty;
+					expect(res.body.data).to.be.empty;
 				});
 			});
 		});
@@ -137,13 +147,13 @@ describe('GET /delegates', function () {
 
 			it('using valid existing address of genesis delegate should return the result', function () {
 				return delegatesEndpoint.makeRequest({address: validDelegate.address}, 200).then(function (res) {
-					res.body.data[0].account.address.should.eql(validDelegate.address);
+					expect(res.body.data[0].account.address).to.eql(validDelegate.address);
 				});
 			});
 
 			it('using valid not existing address should return an empty array', function () {
 				return delegatesEndpoint.makeRequest({address: '1111111111111111111L'}, 200).then(function (res) {
-					res.body.data.should.be.empty;
+					expect(res.body.data).to.be.empty;
 				});
 			});
 		});
@@ -162,13 +172,13 @@ describe('GET /delegates', function () {
 
 			it('using valid existing username of genesis delegate should return the result', function () {
 				return delegatesEndpoint.makeRequest({username: validDelegate.username}, 200).then(function (res) {
-					res.body.data[0].username.should.eql(validDelegate.username);
+					expect(res.body.data[0].username).to.eql(validDelegate.username);
 				});
 			});
 
 			it('using valid not existing username should return an empty array', function () {
 				return delegatesEndpoint.makeRequest({username: 'unknownusername'}, 200).then(function (res) {
-					res.body.data.should.be.empty;
+					expect(res.body.data).to.be.empty;
 				});
 			});
 		});
@@ -183,7 +193,7 @@ describe('GET /delegates', function () {
 
 			it('using the special match all character should return all results', function () {
 				return delegatesEndpoint.makeRequest({search: '%'}, 200).then(function (res) {
-					res.body.data.should.have.length.of.at.least(10);
+					expect(res.body.data).to.have.length.of.at.least(10);
 				});
 			});
 
@@ -203,29 +213,29 @@ describe('GET /delegates', function () {
 
 			it('using search="genesis_1" should return 13 delegates', function () {
 				return delegatesEndpoint.makeRequest({search: 'genesis_1', limit: 20}, 200).then(function (res) {
-					res.body.data.should.have.length(13);
-					res.body.data.map(function (d) { /^genesis_1.*/.test(d.username).should.be.true; });
+					expect(res.body.data).to.have.length(13);
+					res.body.data.map(function (d) { expect(/^genesis_1.*/.test(d.username)).to.be.true; });
 				});
 			});
 
 			it('using search="genesis_10" should return 3 delegates', function () {
 				return delegatesEndpoint.makeRequest({search: 'genesis_10'}, 200).then(function (res) {
-					res.body.data.should.have.length(3);
-					res.body.data.map(function (d) { /^genesis_10.*/.test(d.username).should.be.true; });
+					expect(res.body.data).to.have.length(3);
+					res.body.data.map(function (d) { expect(/^genesis_10.*/.test(d.username)).to.be.true; });
 				});
 			});
 
 			it('using search="genesis_101" should return 1 delegate', function () {
 				return delegatesEndpoint.makeRequest({search: 'genesis_101'}, 200).then(function (res) {
-					res.body.data.should.have.length(1);
-					res.body.data[0].username.should.eql('genesis_101');
+					expect(res.body.data).to.have.length(1);
+					expect(res.body.data[0].username).to.eql('genesis_101');
 				});
 			});
 
 			it('using higher limit should return 101 delegates', function () {
 				return delegatesEndpoint.makeRequest({search: 'genesis_', limit: 100}, 200).then(function (res) {
-					res.body.data.should.have.length(100);
-					res.body.data.map(function (d) { /^genesis_.*/.test(d.username).should.be.true; });
+					expect(res.body.data).to.have.length(100);
+					res.body.data.map(function (d) { expect(/^genesis_.*/.test(d.username)).to.be.true; });
 				});
 			});
 		});
@@ -240,49 +250,49 @@ describe('GET /delegates', function () {
 
 			it('using sort="rank:asc" should sort results in ascending order', function () {
 				return delegatesEndpoint.makeRequest({sort: 'rank:asc'}, 200).then(function (res) {
-					_.map(res.data, 'rank').sort().should.eql(_.map(res.data, 'rank'));
+					expect(_.map(res.data, 'rank').sort()).to.eql(_.map(res.data, 'rank'));
 				});
 			});
 
 			it('using sort="rank:desc" should sort results in descending order', function () {
 				return delegatesEndpoint.makeRequest({sort: 'rank:asc'}, 200).then(function (res) {
-					_.map(res.data, 'rank').sort().reverse().should.eql(_.map(res.data, 'rank'));
+					expect(_.map(res.data, 'rank').sort().reverse()).to.eql(_.map(res.data, 'rank'));
 				});
 			});
 
 			it('using sort="username:asc" should sort results in ascending order', function () {
 				return delegatesEndpoint.makeRequest({sort: 'username:asc'}, 200).then(function (res) {
-					_(res.data).map('username').dbSort().should.eql(_.map(res.data, 'username'));
+					expect(_(res.data).map('username').dbSort()).to.eql(_.map(res.data, 'username'));
 				});
 			});
 
 			it('using sort="username:desc" should sort results in descending order', function () {
 				return delegatesEndpoint.makeRequest({sort: 'username:desc'}, 200).then(function (res) {
-					_(res.data).map('username').dbSort('desc').should.eql(_.map(res.data, 'username'));
+					expect(_(res.data).map('username').dbSort('desc')).to.eql(_.map(res.data, 'username'));
 				});
 			});
 
 			it('using sort="missedBlocks:asc" should sort results in ascending order', function () {
 				return delegatesEndpoint.makeRequest({sort: 'missedBlocks:asc'}, 200).then(function (res) {
-					_.map(res.data, 'missedBlocks').sort().should.eql(_.map(res.data, 'missedBlocks'));
+					expect(_.map(res.data, 'missedBlocks').sort()).to.eql(_.map(res.data, 'missedBlocks'));
 				});
 			});
 
 			it('using sort="missedBlocks:desc" should sort results in descending order', function () {
 				return delegatesEndpoint.makeRequest({sort: 'missedBlocks:desc'}, 200).then(function (res) {
-					_.map(res.data, 'missedBlocks').sort().reverse().should.eql(_.map(res.data, 'missedBlocks'));
+					expect(_.map(res.data, 'missedBlocks').sort().reverse()).to.eql(_.map(res.data, 'missedBlocks'));
 				});
 			});
 
 			it('using sort="productivity:asc" should sort results in ascending order', function () {
 				return delegatesEndpoint.makeRequest({sort: 'productivity:asc'}, 200).then(function (res) {
-					_.map(res.data, 'productivity').sort().should.eql(_.map(res.data, 'productivity'));
+					expect(_.map(res.data, 'productivity').sort()).to.eql(_.map(res.data, 'productivity'));
 				});
 			});
 
 			it('using sort="productivity:desc" should sort results in descending order', function () {
 				return delegatesEndpoint.makeRequest({sort: 'productivity:desc'}, 200).then(function (res) {
-					_.map(res.data, 'productivity').sort().reverse().should.eql(_.map(res.data, 'productivity'));
+					expect(_.map(res.data, 'productivity').sort().reverse()).to.eql(_.map(res.data, 'productivity'));
 				});
 			});
 
@@ -318,13 +328,13 @@ describe('GET /delegates', function () {
 
 			it('using limit=1 should be ok', function () {
 				return delegatesEndpoint.makeRequest({limit: 1}, 200).then(function (res) {
-					res.body.data.should.have.length(1);
+					expect(res.body.data).to.have.length(1);
 				});
 			});
 
 			it('using limit=101 should be ok', function () {
 				return delegatesEndpoint.makeRequest({limit: 100}, 200).then(function (res) {
-					res.body.data.should.have.length(100);
+					expect(res.body.data).to.have.length(100);
 				});
 			});
 
@@ -345,7 +355,7 @@ describe('GET /delegates', function () {
 
 			it('using offset=1 should be ok', function () {
 				return delegatesEndpoint.makeRequest({offset: 1, limit: 10}, 200).then(function (res) {
-					res.body.data.should.have.lengthOf.at.least(10);
+					expect(res.body.data).to.have.lengthOf.at.least(10);
 				});
 			});
 
@@ -363,19 +373,19 @@ describe('GET /delegates', function () {
 
 		it('using no params should be ok', function () {
 			return forgersEndpoint.makeRequest({}, 200).then(function (res) {
-				res.body.data.should.have.length(10);
+				expect(res.body.data).to.have.length(10);
 			});
 		});
 
 		it('using limit=1 should be ok', function () {
 			return forgersEndpoint.makeRequest({limit: 1}, 200).then(function (res) {
-				res.body.data.should.have.length(1);
+				expect(res.body.data).to.have.length(1);
 			});
 		});
 
 		it('using offset=1 limit=10 should be ok', function () {
 			return forgersEndpoint.makeRequest({limit: 10, offset: 1}, 200).then(function (res) {
-				res.body.data.should.have.length(10);
+				expect(res.body.data).to.have.length(10);
 			});
 		});
 
@@ -390,12 +400,12 @@ describe('GET /delegates', function () {
 			});
 
 			it('lastBlockSlot should be less or equal to currentSlot', function () {
-				forgersData.meta.lastBlockSlot.should.be.at.most(forgersData.meta.currentSlot);
+				expect(forgersData.meta.lastBlockSlot).to.be.at.most(forgersData.meta.currentSlot);
 			});
 
 			it('every forger nextSlot should be greater than currentSlot', function () {
 				forgersData.data.forEach(function (forger) {
-					forgersData.meta.currentSlot.should.be.at.most(forger.nextSlot);
+					expect(forgersData.meta.currentSlot).to.be.at.most(forger.nextSlot);
 				});
 			});
 		});

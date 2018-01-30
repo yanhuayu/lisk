@@ -1,12 +1,23 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../../functional.js');
-
+require('../../functional.js');
 var randomstring = require('randomstring');
 var lisk = require('lisk-js');
 var Promise = require('bluebird');
 
-var _ = test._;
 var accountFixtures = require('../../../fixtures/accounts');
 
 var apiCodes = require('../../../../helpers/apiCodes');
@@ -27,14 +38,14 @@ describe('GET /api/votes', function () {
 	var validNotExistingAddress = '11111111111111111111L';
 
 	function expectValidVoterDelegateResponse (res) {
-		res.body.data.votesUsed.should.be.least(res.body.data.votes.length);
-		constants.maxVotesPerAccount.should.be.equal(res.body.data.votesUsed + res.body.data.votesAvailable);
+		expect(res.body.data.votesUsed).to.be.least(res.body.data.votes.length);
+		expect(constants.maxVotesPerAccount).to.be.equal(res.body.data.votesUsed + res.body.data.votesAvailable);
 	}
 
 	function expectValidNonVoterDelegateResponse (res) {
-		res.body.data.votesUsed.should.be.equal(0);
-		res.body.data.votes.should.be.empty;
-		constants.maxVotesPerAccount.should.be.equal(res.body.data.votesUsed + res.body.data.votesAvailable);
+		expect(res.body.data.votesUsed).to.be.equal(0);
+		expect(res.body.data.votes).to.be.empty;
+		expect(constants.maxVotesPerAccount).to.be.equal(res.body.data.votesUsed + res.body.data.votesAvailable);
 	}
 
 	describe('?', function () {
@@ -45,7 +56,7 @@ describe('GET /api/votes', function () {
 
 				it('should fail with error message requiring any of param', function () {
 					return votesEndpoint.makeRequest({}, 400).then(function (res) {
-						res.body.errors.should.have.length(4);
+						expect(res.body.errors).to.have.length(4);
 						expectSwaggerParamError(res, 'username');
 						expectSwaggerParamError(res, 'address');
 						expectSwaggerParamError(res, 'publicKey');
@@ -58,7 +69,7 @@ describe('GET /api/votes', function () {
 
 				it('should fail with error message requiring any of param', function () {
 					return votesEndpoint.makeRequest({sort: 'username:asc'}, 400).then(function (res) {
-						res.body.errors.should.have.length(4);
+						expect(res.body.errors).to.have.length(4);
 						expectSwaggerParamError(res, 'username');
 						expectSwaggerParamError(res, 'address');
 						expectSwaggerParamError(res, 'publicKey');
@@ -71,7 +82,7 @@ describe('GET /api/votes', function () {
 
 				it('should fail with error message requiring any of param', function () {
 					return votesEndpoint.makeRequest({offset: 1}, 400).then(function (res) {
-						res.body.errors.should.have.length(4);
+						expect(res.body.errors).to.have.length(4);
 						expectSwaggerParamError(res, 'username');
 						expectSwaggerParamError(res, 'address');
 						expectSwaggerParamError(res, 'publicKey');
@@ -84,7 +95,7 @@ describe('GET /api/votes', function () {
 
 				it('should fail with error message requiring any of param', function () {
 					return votesEndpoint.makeRequest({sort: 'username:asc'}, 400).then(function (res) {
-						res.body.errors.should.have.length(4);
+						expect(res.body.errors).to.have.length(4);
 						expectSwaggerParamError(res, 'username');
 						expectSwaggerParamError(res, 'address');
 						expectSwaggerParamError(res, 'publicKey');
@@ -210,14 +221,14 @@ describe('GET /api/votes', function () {
 					it('should return votes in ascending order', function () {
 						return votesEndpoint.makeRequest({sort: 'username:asc', publicKey: voterDelegate.publicKey}, 200).then(function (res) {
 							expectValidVoterDelegateResponse(res);
-							_(res.body.data.votes).sortBy('username').map('username').value().should.to.be.eql(_.map(res.body.data.votes, 'username'));
+							expect(_(res.body.data.votes).sortBy('username').map('username').value()).to.to.be.eql(_.map(res.body.data.votes, 'username'));
 						});
 					});
 
 					it('should return votes in descending order', function () {
 						return votesEndpoint.makeRequest({sort: 'username:desc', publicKey: voterDelegate.publicKey}, 200).then(function (res) {
 							expectValidVoterDelegateResponse(res);
-							_(res.body.data.votes).sortBy('username').reverse().map('username').value().should.to.be.eql(_.map(res.body.data.votes, 'username'));
+							expect(_(res.body.data.votes).sortBy('username').reverse().map('username').value()).to.to.be.eql(_.map(res.body.data.votes, 'username'));
 						});
 					});
 				});
@@ -227,14 +238,14 @@ describe('GET /api/votes', function () {
 					it('should return votes in ascending order', function () {
 						return votesEndpoint.makeRequest({sort: 'balance:asc', publicKey: voterDelegate.publicKey}, 200).then(function (res) {
 							expectValidVoterDelegateResponse(res);
-							_.map(res.body.data.votes, 'balance').sort().should.to.be.eql(_.map(res.body.data.votes, 'balance'));
+							expect(_(res.body.data.votes).map('balance').sortNumbers()).to.be.eql(_.map(res.body.data.votes, 'balance'));
 						});
 					});
 
 					it('should return votes in descending order', function () {
 						return votesEndpoint.makeRequest({sort: 'balance:desc', publicKey: voterDelegate.publicKey}, 200).then(function (res) {
 							expectValidVoterDelegateResponse(res);
-							_.map(res.body.data.votes, 'balance').sort().reverse().should.to.be.eql(_.map(res.body.data.votes, 'balance'));
+							expect(_(res.body.data.votes).map('balance').sortNumbers('desc')).to.to.be.eql(_.map(res.body.data.votes, 'balance'));
 						});
 					});
 				});
@@ -247,7 +258,7 @@ describe('GET /api/votes', function () {
 
 				it('should return 2 voters', function () {
 					return votesEndpoint.makeRequest({limit: 2, publicKey: voterDelegate.publicKey}, 200).then(function (res) {
-						res.body.data.votes.should.have.length(2);
+						expect(res.body.data.votes).to.have.length(2);
 					});
 				});
 			});
@@ -258,13 +269,13 @@ describe('GET /api/votes', function () {
 					var votes = null;
 
 					return votesEndpoint.makeRequest({limit: 2, offset: 0, publicKey: voterDelegate.publicKey}, 200).then(function (res) {
-						res.body.data.votes.should.have.length(2);
+						expect(res.body.data.votes).to.have.length(2);
 
 						votes = _.map(res.body.data.votes, 'address');
 
 						return votesEndpoint.makeRequest({limit: 2, offset: 1, publicKey: voterDelegate.publicKey}, 200);
 					}).then(function (res) {
-						_.intersection(votes, _.map(res.body.data.votes, 'address')).should.have.length(1);
+						expect(_.intersection(votes, _.map(res.body.data.votes, 'address'))).to.have.length(1);
 					});
 				});
 			});
@@ -296,9 +307,9 @@ describe('GET /api/votes', function () {
 					return votesEndpoint.makeRequest({address: account.address}, 200);
 				}).then(function (res) {
 					expectValidNonVoterDelegateResponse(res);
-					res.body.data.address.should.be.equal(account.address);
-					res.body.data.votesUsed.should.be.equal(0);
-					res.body.data.votesAvailable.should.be.equal(constants.maxVotesPerAccount);
+					expect(res.body.data.address).to.be.equal(account.address);
+					expect(res.body.data.votesUsed).to.be.equal(0);
+					expect(res.body.data.votesAvailable).to.be.equal(constants.maxVotesPerAccount);
 				}).then(function (res) {
 					return apiHelpers.sendTransactionPromise(voteTransaction);
 				}).then(function (res) {
@@ -307,8 +318,8 @@ describe('GET /api/votes', function () {
 					return votesEndpoint.makeRequest({address: account.address}, 200);
 				}).then(function (res) {
 					expectValidVoterDelegateResponse(res);
-					res.body.data.votesUsed.should.be.equal(1);
-					_.map(res.body.data.votes, 'publicKey').should.be.eql([nonVoterDelegate.publicKey]);
+					expect(res.body.data.votesUsed).to.be.equal(1);
+					expect(_.map(res.body.data.votes, 'publicKey')).to.be.eql([nonVoterDelegate.publicKey]);
 				});
 			});
 		});

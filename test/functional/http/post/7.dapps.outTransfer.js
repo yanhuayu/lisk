@@ -1,9 +1,20 @@
+/*
+ * Copyright © 2018 Lisk Foundation
+ *
+ * See the LICENSE file at the top-level directory of this distribution
+ * for licensing information.
+ *
+ * Unless otherwise agreed in a custom licensing agreement with the Lisk Foundation,
+ * no part of this software, including this file, may be copied, modified,
+ * propagated, or distributed except according to the terms contained in the
+ * LICENSE file.
+ *
+ * Removal or modification of this copyright notice is prohibited.
+ */
 'use strict';
 
-var test = require('../../functional.js');
-
+require('../../functional.js');
 var lisk = require('lisk-js');
-var expect = require('chai').expect;
 var Promise = require('bluebird');
 
 var common = require('./common');
@@ -42,7 +53,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 		return Promise.all(promises)
 			.then(function (results) {
 				results.forEach(function (res) {
-					res.body.data.message.should.be.equal('Transaction(s) accepted');
+					expect(res.body.data.message).to.be.equal('Transaction(s) accepted');
 				});
 
 				transactionsToWaitFor.push(transaction1.id, transaction2.id);
@@ -55,7 +66,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				return sendTransactionPromise(transaction);
 			})
 			.then(function (res) {
-				res.body.data.message.should.be.equal('Transaction(s) accepted');
+				expect(res.body.data.message).to.be.equal('Transaction(s) accepted');
 
 				randomUtil.guestbookDapp.id = transaction.id;
 				transactionsToWaitFor.push(randomUtil.guestbookDapp.id);
@@ -64,7 +75,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				return sendTransactionPromise(transaction);
 			})
 			.then(function (res) {
-				res.body.data.message.should.be.equal('Transaction(s) accepted');
+				expect(res.body.data.message).to.be.equal('Transaction(s) accepted');
 
 				randomUtil.blockDataDapp.id = transaction.id;
 				transactionsToWaitFor.push(randomUtil.blockDataDapp.id);
@@ -84,7 +95,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				delete transaction.asset.outTransfer.dappId;
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Missing required property: dappId');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Missing required property: dappId');
 					badTransactions.push(transaction);
 				});
 			});
@@ -94,7 +105,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction.asset.outTransfer.dappId = 1;
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type integer');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type integer');
 					badTransactions.push(transaction);
 				});
 			});
@@ -104,7 +115,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction.asset.outTransfer.dappId = 1.2;
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type number, Object didn\'t pass validation for format id: 1.2');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type number, Object didn\'t pass validation for format id: 1.2');
 					badTransactions.push(transaction);
 				});
 			});
@@ -114,7 +125,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction.asset.outTransfer.dappId = [];
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type array');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type array');
 					badTransactions.push(transaction);
 				});
 			});
@@ -124,7 +135,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction.asset.outTransfer.dappId = {};
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type object, Object didn\'t pass validation for format id: {}');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type object, Object didn\'t pass validation for format id: {}');
 					badTransactions.push(transaction);
 				});
 			});
@@ -133,7 +144,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction = lisk.transfer.createOutTransfer('', randomUtil.transaction().id, accountFixtures.genesis.address, Date.now(), account.password);
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: String is too short (0 chars), minimum 1');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: String is too short (0 chars), minimum 1');
 					badTransactions.push(transaction);
 				});
 			});
@@ -143,20 +154,20 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction = lisk.transfer.createOutTransfer(invalidDappId, randomUtil.transaction().id, accountFixtures.genesis.address, Date.now(), account.password);
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Object didn\'t pass validation for format id: ' + invalidDappId);
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Object didn\'t pass validation for format id: ' + invalidDappId);
 					badTransactions.push(transaction);
 				});
 			});
 		});
 
 		describe('transactionId', function () {
-			
+
 			it('without should fail', function () {
 				transaction = lisk.transfer.createOutTransfer(randomUtil.guestbookDapp.id, randomUtil.transaction().id, accountFixtures.genesis.address, Date.now(), account.password);
 				delete transaction.asset.outTransfer.transactionId;
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Missing required property: transactionId');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Missing required property: transactionId');
 					badTransactions.push(transaction);
 				});
 			});
@@ -166,7 +177,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction.asset.outTransfer.transactionId = 1;
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type integer');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type integer');
 					badTransactions.push(transaction);
 				});
 			});
@@ -176,7 +187,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction.asset.outTransfer.transactionId = 1.2;
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type number, Object didn\'t pass validation for format id: 1.2');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type number, Object didn\'t pass validation for format id: 1.2');
 					badTransactions.push(transaction);
 				});
 			});
@@ -186,7 +197,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction.asset.outTransfer.transactionId = [];
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type array');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type array');
 					badTransactions.push(transaction);
 				});
 			});
@@ -196,7 +207,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction.asset.outTransfer.transactionId = {};
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type object, Object didn\'t pass validation for format id: {}');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Expected type string but found type object, Object didn\'t pass validation for format id: {}');
 					badTransactions.push(transaction);
 				});
 			});
@@ -205,7 +216,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction = lisk.transfer.createOutTransfer(randomUtil.guestbookDapp.id, '', accountFixtures.genesis.address, 1, account.password);
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: String is too short (0 chars), minimum 1');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: String is too short (0 chars), minimum 1');
 					badTransactions.push(transaction);
 				});
 			});
@@ -215,7 +226,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction = lisk.transfer.createOutTransfer(randomUtil.guestbookDapp.id, invalidTransactionId, accountFixtures.genesis.address, Date.now(), account.password);
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Object didn\'t pass validation for format id: ' + invalidTransactionId);
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate outTransfer schema: Object didn\'t pass validation for format id: ' + invalidTransactionId);
 					badTransactions.push(transaction);
 				});
 			});
@@ -283,7 +294,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction = lisk.transfer.createOutTransfer(randomUtil.guestbookDapp.id, randomUtil.transaction().id, accountFixtures.genesis.address, -1, account.password);
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.be.equal('Invalid transaction body - Failed to validate transaction schema: Value -1 is less than minimum 0');
+					expect(res.body.message).to.be.equal('Invalid transaction body - Failed to validate transaction schema: Value -1 is less than minimum 0');
 					badTransactions.push(transaction);
 				});
 			});
@@ -304,7 +315,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 						return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR);
 					})
 					.then(function (res) {
-						res.body.message.should.match(/^Account does not have enough LSK: /);
+						expect(res.body.message).to.match(/^Account does not have enough LSK: /);
 						badTransactions.push(transaction);
 					});
 			});
@@ -318,7 +329,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 			transaction = lisk.transfer.createOutTransfer(unknownDappId, randomUtil.transaction().id, accountFixtures.genesis.address, 1, account.password);
 
 			return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-				res.body.message.should.be.equal('Application not found: ' + unknownDappId);
+				expect(res.body.message).to.be.equal('Application not found: ' + unknownDappId);
 				badTransactions.push(transaction);
 			});
 		});
@@ -328,7 +339,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 			transaction = lisk.transfer.createOutTransfer(inexistentId, randomUtil.transaction().id, accountFixtures.genesis.address, 1, account.password);
 
 			return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-				res.body.message.should.be.equal('Application not found: ' + inexistentId);
+				expect(res.body.message).to.be.equal('Application not found: ' + inexistentId);
 				badTransactions.push(transaction);
 			});
 		});
@@ -337,7 +348,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 			transaction = lisk.transfer.createOutTransfer(transactionsToWaitFor[0], randomUtil.transaction().id, accountFixtures.genesis.address, 1, account.password);
 
 			return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-				res.body.message.should.be.equal('Application not found: ' + transactionsToWaitFor[0]);
+				expect(res.body.message).to.be.equal('Application not found: ' + transactionsToWaitFor[0]);
 				badTransactions.push(transaction);
 			});
 		});
@@ -346,7 +357,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 			transaction = lisk.transfer.createOutTransfer(randomUtil.guestbookDapp.id, randomUtil.transaction().id, accountFixtures.genesis.address, 10 * normalizer, account.password);
 
 			return sendTransactionPromise(transaction).then(function (res) {
-				res.body.data.message.should.be.equal('Transaction(s) accepted');
+				expect(res.body.data.message).to.be.equal('Transaction(s) accepted');
 				goodTransactions.push(transaction);
 			});
 		});
@@ -357,7 +368,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction = lisk.transfer.createOutTransfer(randomUtil.blockDataDapp.id, randomUtil.transaction().id, accountFixtures.genesis.address, 10 * normalizer, accountMinimalFunds.password);
 
 				return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
-					res.body.message.should.match(/^Account does not have enough LSK: /);
+					expect(res.body.message).to.match(/^Account does not have enough LSK: /);
 					badTransactions.push(transaction);
 				});
 			});
@@ -366,7 +377,7 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 				transaction = lisk.transfer.createOutTransfer(randomUtil.guestbookDapp.id, randomUtil.transaction().id, accountFixtures.genesis.address, 10 * normalizer, account.password);
 
 				return sendTransactionPromise(transaction).then(function (res) {
-					res.body.data.message.should.be.equal('Transaction(s) accepted');
+					expect(res.body.data.message).to.be.equal('Transaction(s) accepted');
 					goodTransactions.push(transaction);
 				});
 			});
@@ -376,5 +387,16 @@ describe('POST /api/transactions (type 7) outTransfer dapp', function () {
 	describe('confirmation', function () {
 
 		phases.confirmation(goodTransactions, badTransactions);
+	});
+
+	describe.only('check frozen type', function () {
+
+		it('transaction should be rejected', function () {
+			transaction = lisk.transfer.createOutTransfer(randomUtil.guestbookDapp.id, randomUtil.transaction().id, accountFixtures.genesis.address, 10 * normalizer, account.password);
+
+			return sendTransactionPromise(transaction, errorCodes.PROCESSING_ERROR).then(function (res) {
+				expect(res.body.message).to.be.equal('Transaction type ' + transaction.type + ' is frozen');
+			});
+		});
 	});
 });
